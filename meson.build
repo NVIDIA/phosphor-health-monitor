@@ -34,6 +34,7 @@ executable(
 )
 
 install_data(sources : 'bmc_health_config.json', install_dir : '/etc/healthMon')
+install_data(sources : 'systemRecovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 
 conf_data = configuration_data()
 conf_data.set('HEALTH_CONFIG_FILE', '"/etc/healthMon/bmc_health_config.json"')
@@ -51,6 +52,13 @@ conf_data.set('bindir', get_option('prefix') / get_option('bindir'))
 configure_file(
   input: 'phosphor-health-monitor.service.in',
   output: 'phosphor-health-monitor.service',
+  configuration: conf_data,
+  install: true,
+  install_dir: systemd.get_variable('systemdsystemunitdir'))
+
+  configure_file(
+  input: 'systemrecovery.service.in',
+  output: 'HealthMonitorSystemRecovery@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))

@@ -120,6 +120,15 @@ class HealthSensor : public healthIfaces
     void setSensorThreshold(double criticalHigh, double warningHigh);
     /** @brief Check Sensor threshold and update alarm and log */
     void checkSensorThreshold(const double value);
+    /** @brief create Redfish log  */
+    void createRFLogEntry(const std::string &messageId,
+                          const std::string &messageArgs,
+                          const std::string &level);
+
+    /** @brief create Sensor Treshold Redfish log  */
+    void createTresholdLogEntry(const std::string &treshold,
+                                const std::string &sensorName, double value,
+                                const double configTresholdValue);
 
   private:
     /** @brief sdbusplus bus client connection. */
@@ -133,7 +142,8 @@ class HealthSensor : public healthIfaces
     /** @brief Read sensor at regular intrval */
     void readHealthSensor();
     /** @brief Start configured threshold systemd unit */
-    void startUnit(const std::string& sysdUnit);
+    void startUnit(const std::string &sysdUnit, const std::string &threshold,
+                   const std::string &resource, const std::string &path);
 };
 
 class BmcInventory : public BmcInterface

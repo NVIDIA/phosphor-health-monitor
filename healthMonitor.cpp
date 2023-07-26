@@ -407,25 +407,78 @@ void HealthSensor::initHealthSensor(
     /* Start the timer for reading sensor data at regular interval */
     readTimer.restart(std::chrono::milliseconds(sensorConfig.freq * 1000));
 }
+void HealthSensor::createRFLogEntry(const std::string &messageId,
+                                    const std::string &messageArgs,
+                                    const std::string &level) {
+  auto method = this->bus.new_method_call(
+      "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+      "xyz.openbmc_project.Logging.Create", "Create");
+  // Signature is ssa{ss}
+  method.append(messageId);
+  method.append(level);
+  method.append(std::array<std::pair<std::string, std::string>, 2>(
+      {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
+       std::pair<std::string, std::string>(
+           {"REDFISH_MESSAGE_ARGS", messageArgs})}));
+  try {
+    // A strict timeout for logging service to fail early and ensure
+    // the original caller does not encounter dbus timeout
+    uint64_t timeout_us = 10000000;
+
+    this->bus.call_noreply(method, timeout_us);
+  } catch (const sdbusplus::exception::exception &e) {
+    error("Failed to create log entry, exception:{ERROR}", "ERROR", e);
+  }
+}
+
+void HealthSensor::createTresholdLogEntry(const std::string &treshold,
+                                          const std::string &sensorName,
+                                          double value,
+                                          const double configTresholdValue) {
+
+  std::string messageId = "OpenBMC.0.4.";
+  std::string messageArgs{};
+  std::string messageLevel{};
+  if (treshold == "warning") {
+
+    messageId += "SensorThresholdWarningHighGoingHigh";
+    messageArgs = sensorName + "," + std::to_string(value) + "," +
+                  std::to_string(configTresholdValue);
+    messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
+    createRFLogEntry(messageId, messageArgs, messageLevel);
+  } else if (treshold == "critical") {
+    messageId += "SensorThresholdCriticalHighGoingHigh";
+    messageArgs = sensorName + "," + std::to_string(value) + "," +
+                  std::to_string(configTresholdValue);
+    messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+    createRFLogEntry(messageId, messageArgs, messageLevel);
+  } else {
+    error("ERROR: Invalid treshold {TRESHOLD} used for log creation ",
+          "TRESHOLD", treshold);
+  }
+}
 
 void HealthSensor::checkSensorThreshold(const double value)
 {
-    if (std::isfinite(sensorConfig.criticalHigh) &&
-        (value > sensorConfig.criticalHigh))
-    {
-        if (!CriticalInterface::criticalAlarmHigh())
-        {
-            CriticalInterface::criticalAlarmHigh(true);
-            if (sensorConfig.criticalLog)
-            {
-                error(
-                    "ASSERT: sensor {SENSOR} is above the upper threshold critical high",
-                    "SENSOR", sensorConfig.name);
-                startUnit(sensorConfig.criticalTgt);
-            }
-        }
-        return;
+  std::string path = "";
+  if (std::isfinite(sensorConfig.criticalHigh) &&
+      (value > sensorConfig.criticalHigh)) {
+    if (!CriticalInterface::criticalAlarmHigh()) {
+      CriticalInterface::criticalAlarmHigh(true);
+      if (sensorConfig.criticalLog) {
+        error("ASSERT: sensor {SENSOR} is above the upper threshold critical "
+              "high",
+              "SENSOR", sensorConfig.name);
+        createTresholdLogEntry("critical", sensorConfig.name, value,
+                               sensorConfig.criticalHigh);
+        if (sensorConfig.name.rfind(storage, 0) == 0)
+          path = sensorConfig.path;
+        startUnit(sensorConfig.criticalTgt, "critical", sensorConfig.name,
+                  path);
+      }
     }
+    return;
+  }
 
     if (CriticalInterface::criticalAlarmHigh())
     {
@@ -447,7 +500,12 @@ void HealthSensor::checkSensorThreshold(const double value)
                 error(
                     "ASSERT: sensor {SENSOR} is above the upper threshold warning high",
                     "SENSOR", sensorConfig.name);
-                startUnit(sensorConfig.warningTgt);
+                createTresholdLogEntry("warning", sensorConfig.name, value,
+                                       sensorConfig.warningHigh);
+                if (sensorConfig.name.rfind(storage, 0) == 0)
+                  path = sensorConfig.path;
+                startUnit(sensorConfig.warningTgt, "warning", sensorConfig.name,
+                          path);
             }
         }
         return;
@@ -513,18 +571,31 @@ void HealthSensor::readHealthSensor()
     checkSensorThreshold(avgValue);
 }
 
-void HealthSensor::startUnit(const std::string& sysdUnit)
-{
-    if (sysdUnit.empty())
-    {
-        return;
-    }
+void HealthSensor::startUnit(const std::string &sysdUnit,
+                             const std::string &threshold,
+                             const std::string &resource,
+                             const std::string &path) {
+  if (sysdUnit.empty()) {
+    return;
+  }
+  auto service = sysdUnit;
+  std::string args = "";
+  args += "\\x20";
+  args += resource;
+  args += "\\x20";
+  args += threshold;
+  args += "\\x20";
+  args += path;
+  std::replace(args.begin(), args.end(), '/', '-');
+  auto p = service.find('@');
+  if (p != std::string::npos)
+    service.insert(p + 1, args);
 
-    sdbusplus::message_t msg = bus.new_method_call(
-        "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-        "org.freedesktop.systemd1.Manager", "StartUnit");
-    msg.append(sysdUnit, "replace");
-    bus.call_noreply(msg);
+  sdbusplus::message_t msg = bus.new_method_call(
+      "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+      "org.freedesktop.systemd1.Manager", "StartUnit");
+  msg.append(service, "replace");
+  bus.call_noreply(msg);
 }
 
 void HealthMon::recreateSensors()
