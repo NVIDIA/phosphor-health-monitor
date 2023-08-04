@@ -6,7 +6,7 @@
             "Critical": {
                 "Value": 90.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
@@ -22,7 +22,7 @@
             "Critical": {
                 "Value": 90.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
@@ -38,7 +38,7 @@
             "Critical": {
                 "Value": 90.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
@@ -49,12 +49,12 @@
     },
     "Memory": {
         "Frequency": 1,
-        "Window_size": 120,
+        "Window_size": 8,
         "Threshold": {
             "Critical": {
                 "Value": 85.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
             }
         }
     },
@@ -66,7 +66,7 @@
             "Critical": {
                 "Value": 85.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
             }
         }
     },
@@ -78,7 +78,19 @@
             "Critical": {
                 "Value": 85.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HealthMonitorSystemRecovery@.service"
+            }
+        }
+    },
+    "Storage_LOGGING": {
+        "Path": "/var/lib/logging",
+        "Frequency": 1,
+        "Window_size": 120,
+        "Threshold": {
+            "Critical": {
+                "Value": 85.0,
+                "Log": true,
+                "Target": "HealthMonitorSystemRecovery@.service"
             }
         }
     }
