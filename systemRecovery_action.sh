@@ -29,13 +29,15 @@ if [[ "$THRESHOLD" == "critical" && "$RESOURCE" == "Storage_"* ]]; then
     fi  
     busctl call xyz.openbmc_project.Logging /xyz/openbmc_project/logging xyz.openbmc_project.Logging.Create Create ssa{ss} "OpenBMC.0.4.BMCRebootReason" "xyz.openbmc_project.Logging.Entry.Level.Informational" 2 "REDFISH_MESSAGE_ID" "OpenBMC.0.4.BMCRebootReason" "REDFISH_MESSAGE_ARGS" " Usage of Resource $RESOURCE hit critical value"
     usleep 2000000
-    systemctl start reboot.target  
+    #Activate the below line to reboot the BMC
+    #systemctl start reboot.target
 elif [[ "$THRESHOLD" == "critical" ]]; then
     echo "Critical threshold hit for $RESOURCE resource rebooting BMC"
     # Add your action for critical threshold on non-storage resource here
     busctl call xyz.openbmc_project.Logging /xyz/openbmc_project/logging xyz.openbmc_project.Logging.Create Create ssa{ss} "OpenBMC.0.4.BMCRebootReason" "xyz.openbmc_project.Logging.Entry.Level.Informational" 2 "REDFISH_MESSAGE_ID" "OpenBMC.0.4.BMCRebootReason" "REDFISH_MESSAGE_ARGS" " Usage of Resource $RESOURCE hit critical value"
     usleep 2000000
-    systemctl start reboot.target
+    #Activate the below line to reboot the BMC
+    #systemctl start reboot.target
 
 else
     echo "Warning threshold hit for $RESOURCE resource"
