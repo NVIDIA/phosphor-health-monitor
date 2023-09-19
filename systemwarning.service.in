@@ -1,0 +1,8 @@
+[Unit]
+Description=System level Warning Action Script
+[Service]
+ExecStart=/usr/bin/system_warning_action.sh %I
+Type=oneshot
+ 
+[Install]
+WantedBy=multi-user.target

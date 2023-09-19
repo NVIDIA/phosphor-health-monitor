@@ -16,7 +16,6 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
-#include <sstream>
 
 extern "C"
 {
@@ -33,6 +32,7 @@ static constexpr uint8_t defaultHighThreshold = 100;
 bool needUpdate;
 static constexpr int TIMER_INTERVAL = 10;
 std::shared_ptr<boost::asio::steady_timer> sensorRecreateTimer;
+
 std::shared_ptr<phosphor::health::HealthMon> healthMon;
 
 namespace phosphor
@@ -407,78 +407,148 @@ void HealthSensor::initHealthSensor(
     /* Start the timer for reading sensor data at regular interval */
     readTimer.restart(std::chrono::milliseconds(sensorConfig.freq * 1000));
 }
-void HealthSensor::createRFLogEntry(const std::string &messageId,
-                                    const std::string &messageArgs,
-                                    const std::string &level) {
-  auto method = this->bus.new_method_call(
-      "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
-      "xyz.openbmc_project.Logging.Create", "Create");
-  // Signature is ssa{ss}
-  method.append(messageId);
-  method.append(level);
-  method.append(std::array<std::pair<std::string, std::string>, 2>(
-      {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
-       std::pair<std::string, std::string>(
-           {"REDFISH_MESSAGE_ARGS", messageArgs})}));
-  try {
-    // A strict timeout for logging service to fail early and ensure
-    // the original caller does not encounter dbus timeout
-    uint64_t timeout_us = 10000000;
+void HealthSensor::createRFLogEntry(const std::string& messageId,
+                                    const std::string& messageArgs,
+                                    const std::string& level)
+{
+    auto method = this->bus.new_method_call(
+        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+        "xyz.openbmc_project.Logging.Create", "Create");
+    // Signature is ssa{ss}
+    method.append(messageId);
+    method.append(level);
+    method.append(std::array<std::pair<std::string, std::string>, 2>(
+        {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
+         std::pair<std::string, std::string>(
+             {"REDFISH_MESSAGE_ARGS", messageArgs})}));
+    try
+    {
+        // A strict timeout for logging service to fail early and ensure
+        // the original caller does not encounter dbus timeout
+        uint64_t timeout_us = 10000000;
 
-    this->bus.call_noreply(method, timeout_us);
-  } catch (const sdbusplus::exception::exception &e) {
-    error("Failed to create log entry, exception:{ERROR}", "ERROR", e);
-  }
+        this->bus.call_noreply(method, timeout_us);
+    }
+    catch (const sdbusplus::exception::exception& e)
+    {
+        error("Failed to create log entry, exception:{ERROR}", "ERROR", e);
+    }
 }
 
-void HealthSensor::createTresholdLogEntry(const std::string &treshold,
-                                          const std::string &sensorName,
+void HealthSensor::createThresholdLogEntry(const std::string& threshold,
+                                          const std::string& sensorName,
                                           double value,
-                                          const double configTresholdValue) {
+                                          const double configThresholdValue)
+{
 
-  std::string messageId = "OpenBMC.0.4.";
-  std::string messageArgs{};
-  std::string messageLevel{};
-  if (treshold == "warning") {
+    std::string messageId = "OpenBMC.0.4.";
+    std::string messageArgs{};
+    std::string messageLevel{};
+    if (threshold == "warning")
+    {
 
-    messageId += "SensorThresholdWarningHighGoingHigh";
-    messageArgs = sensorName + "," + std::to_string(value) + "," +
-                  std::to_string(configTresholdValue);
-    messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
-    createRFLogEntry(messageId, messageArgs, messageLevel);
-  } else if (treshold == "critical") {
-    messageId += "SensorThresholdCriticalHighGoingHigh";
-    messageArgs = sensorName + "," + std::to_string(value) + "," +
-                  std::to_string(configTresholdValue);
-    messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-    createRFLogEntry(messageId, messageArgs, messageLevel);
-  } else {
-    error("ERROR: Invalid treshold {TRESHOLD} used for log creation ",
-          "TRESHOLD", treshold);
-  }
+        messageId += "SensorThresholdWarningHighGoingHigh";
+        messageArgs = sensorName + "," + std::to_string(value) + "," +
+                      std::to_string(configThresholdValue);
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
+        createRFLogEntry(messageId, messageArgs, messageLevel);
+    }
+    else if (threshold == "critical")
+    {
+        messageId += "SensorThresholdCriticalHighGoingHigh";
+        messageArgs = sensorName + "," + std::to_string(value) + "," +
+                      std::to_string(configThresholdValue);
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+        createRFLogEntry(messageId, messageArgs, messageLevel);
+    }
+    else
+    {
+        error("ERROR: Invalid threshold {TRESHOLD} used for log creation ",
+              "TRESHOLD", threshold);
+    }
+}
+
+bool HealthSensor::checkCriticalLogRateLimitWindow()
+{
+    if (!std::chrono::duration_cast<std::chrono::seconds>(
+                lastCriticalLogLoggedTime.time_since_epoch())
+            .count())
+    {
+        // Update the last Critical log loggedTime
+        lastCriticalLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    std::chrono::duration<double> diff =
+        std::chrono::high_resolution_clock::now() -
+        lastCriticalLogLoggedTime;
+    if (diff.count() > healthMon->getlogRateLimit())
+    {
+        // Update the last Critical log loggedTime
+        lastCriticalLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+
+    return false;
+}
+
+bool HealthSensor::checkWarningLogRateLimitWindow()
+{
+    if (!std::chrono::duration_cast<std::chrono::seconds>(
+                lastWarningLogLoggedTime.time_since_epoch())
+            .count())
+    {
+        // Update the last warning log loggedTime
+        lastWarningLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    std::chrono::duration<double> diff =
+        std::chrono::high_resolution_clock::now() -
+        lastWarningLogLoggedTime;
+
+    if (diff.count() > healthMon->getlogRateLimit())
+    {
+        // Update the last warning log loggedTime
+        lastWarningLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    return false;
 }
 
 void HealthSensor::checkSensorThreshold(const double value)
 {
-  std::string path = "";
-  if (std::isfinite(sensorConfig.criticalHigh) &&
-      (value > sensorConfig.criticalHigh)) {
-    if (!CriticalInterface::criticalAlarmHigh()) {
-      CriticalInterface::criticalAlarmHigh(true);
-      if (sensorConfig.criticalLog) {
-        error("ASSERT: sensor {SENSOR} is above the upper threshold critical "
-              "high",
-              "SENSOR", sensorConfig.name);
-        createTresholdLogEntry("critical", sensorConfig.name, value,
-                               sensorConfig.criticalHigh);
-        if (sensorConfig.name.rfind(storage, 0) == 0)
-          path = sensorConfig.path;
-        startUnit(sensorConfig.criticalTgt, "critical", sensorConfig.name,
-                  path);
-      }
+    std::string path;
+
+    if (std::isfinite(sensorConfig.criticalHigh) &&
+        (value > sensorConfig.criticalHigh))
+    {
+        if (!CriticalInterface::criticalAlarmHigh())
+        {
+            CriticalInterface::criticalAlarmHigh(true);
+            if (sensorConfig.criticalLog)
+            {
+                error(
+                    "ASSERT: sensor {SENSOR} is above the upper threshold critical "
+                    "high",
+                    "SENSOR", sensorConfig.name);
+                if (checkCriticalLogRateLimitWindow())
+                {
+                    createThresholdLogEntry("critical", sensorConfig.name, value,
+                                           sensorConfig.criticalHigh);
+                    if (sensorConfig.name.rfind(storage, 0) == 0)
+                    {
+                        path = sensorConfig.path;
+                    }
+                    startUnit(sensorConfig.criticalTgt,
+                            sensorConfig.name, path);
+                }
+            }
+        }
+        return;
     }
-    return;
-  }
 
     if (CriticalInterface::criticalAlarmHigh())
     {
@@ -500,12 +570,18 @@ void HealthSensor::checkSensorThreshold(const double value)
                 error(
                     "ASSERT: sensor {SENSOR} is above the upper threshold warning high",
                     "SENSOR", sensorConfig.name);
-                createTresholdLogEntry("warning", sensorConfig.name, value,
-                                       sensorConfig.warningHigh);
-                if (sensorConfig.name.rfind(storage, 0) == 0)
-                  path = sensorConfig.path;
-                startUnit(sensorConfig.warningTgt, "warning", sensorConfig.name,
-                          path);
+                if (checkWarningLogRateLimitWindow())
+                {
+                    createThresholdLogEntry("warning", sensorConfig.name, value,
+                                           sensorConfig.warningHigh);
+                    if (sensorConfig.name.rfind(storage, 0) == 0)
+                    {
+                        path = sensorConfig.path;
+                    }
+                    startUnit(sensorConfig.warningTgt,
+                              sensorConfig.name, path);
+
+                }
             }
         }
         return;
@@ -553,6 +629,7 @@ void HealthSensor::readHealthSensor()
     }
     /* Add new item at the back */
     valQueue.push_back(value);
+
     /* Wait until the queue is filled with enough reference*/
     if (valQueue.size() < sensorConfig.windowSize)
     {
@@ -571,31 +648,31 @@ void HealthSensor::readHealthSensor()
     checkSensorThreshold(avgValue);
 }
 
-void HealthSensor::startUnit(const std::string &sysdUnit,
-                             const std::string &threshold,
-                             const std::string &resource,
-                             const std::string &path) {
-  if (sysdUnit.empty()) {
-    return;
-  }
-  auto service = sysdUnit;
-  std::string args = "";
-  args += "\\x20";
-  args += resource;
-  args += "\\x20";
-  args += threshold;
-  args += "\\x20";
-  args += path;
-  std::replace(args.begin(), args.end(), '/', '-');
-  auto p = service.find('@');
-  if (p != std::string::npos)
-    service.insert(p + 1, args);
+void HealthSensor::startUnit(const std::string& sysdUnit,
+                             const std::string& resource,
+                             const std::string& path)
+{
+    if (sysdUnit.empty())
+    {
+        return;
+    }
+    auto service = sysdUnit;
+    std::string args;
+    args += "\\x20";
+    args += resource;
+    args += "\\x20";
+    args += path;
 
-  sdbusplus::message_t msg = bus.new_method_call(
-      "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-      "org.freedesktop.systemd1.Manager", "StartUnit");
-  msg.append(service, "replace");
-  bus.call_noreply(msg);
+    std::replace(args.begin(), args.end(), '/', '-');
+    auto p = service.find('@');
+    if (p != std::string::npos)
+        service.insert(p + 1, args);
+
+    sdbusplus::message_t msg = bus.new_method_call(
+        "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+        "org.freedesktop.systemd1.Manager", "StartUnit");
+    msg.append(service, "replace");
+    bus.call_noreply(msg);
 }
 
 void HealthMon::recreateSensors()
@@ -676,8 +753,8 @@ void HealthMon::getConfigData(Json& data, HealthConfig& cfg)
         auto criticalData = threshold.value("Critical", empty);
         if (!criticalData.empty())
         {
-            cfg.criticalHigh = criticalData.value("Value",
-                                                  defaultHighThreshold);
+            cfg.criticalHigh =
+                criticalData.value("Value", defaultHighThreshold);
             cfg.criticalLog = criticalData.value("Log", true);
             cfg.criticalTgt = criticalData.value("Target", "");
         }
@@ -685,7 +762,7 @@ void HealthMon::getConfigData(Json& data, HealthConfig& cfg)
         if (!warningData.empty())
         {
             cfg.warningHigh = warningData.value("Value", defaultHighThreshold);
-            cfg.warningLog = warningData.value("Log", false);
+            cfg.warningLog = warningData.value("Log", true);
             cfg.warningTgt = warningData.value("Target", "");
         }
     }
@@ -700,15 +777,26 @@ std::vector<HealthConfig> HealthMon::getHealthConfig()
     // print values
     if (DEBUG)
         std::cout << "Config json data:\n" << data << "\n\n";
-
     /* Get data items from config json data*/
     for (auto& j : data.items())
     {
         auto key = j.key();
+        if (key == "LogRateLimit")
+        {
+            logRateLimit = j.value();
+            continue;
+        }
+
+        if (key == "BootDelay")
+        {
+            bootDelay = j.value();
+            continue;
+        }
+
         /* key need match default value in map readSensors or match the key
          * start with "Storage" or "Inode" */
-        bool isStorageOrInode = (key.rfind(storage, 0) == 0 ||
-                                 key.rfind(inode, 0) == 0);
+        bool isStorageOrInode =
+            (key.rfind(storage, 0) == 0 || key.rfind(inode, 0) == 0);
         if (readSensors.find(key) != readSensors.end() || isStorageOrInode)
         {
             HealthConfig cfg = HealthConfig();
@@ -759,6 +847,13 @@ void HealthMon::createBmcInventoryIfNotCreated()
 bool HealthMon::bmcInventoryCreated()
 {
     return bmcInventory != nullptr;
+}
+
+void HealthMon::sleepuntilSystemBoot()
+{
+    info("health monitor is waiting for system boot");
+    // wait for the system to boot up
+    sleep(bootDelay);
 }
 
 } // namespace health
@@ -827,6 +922,9 @@ int main()
     // Create an health monitor object
     healthMon = std::make_shared<phosphor::health::HealthMon>(*conn);
 
+    // Sleep until system boot
+    healthMon->sleepuntilSystemBoot();
+
     // Add object manager through object_server
     sdbusplus::asio::object_server objectServer(conn);
 
@@ -835,57 +933,58 @@ int main()
     sensorRecreateTimer = std::make_shared<boost::asio::steady_timer>(io);
 
     // If the SystemInventory does not exist: wait for the InterfaceAdded signal
-    auto interfacesAddedSignalHandler =
-        std::make_unique<sdbusplus::bus::match_t>(
-            static_cast<sdbusplus::bus_t&>(*conn),
-            sdbusplus::bus::match::rules::interfacesAdded(),
-            [conn](sdbusplus::message_t& msg) {
-        using Association = std::tuple<std::string, std::string, std::string>;
-        using InterfacesAdded = std::vector<std::pair<
-            std::string,
-            std::vector<std::pair<std::string,
-                                  std::variant<std::vector<Association>>>>>>;
+    auto interfacesAddedSignalHandler = std::make_unique<
+        sdbusplus::bus::match_t>(
+        static_cast<sdbusplus::bus_t&>(*conn),
+        sdbusplus::bus::match::rules::interfacesAdded(),
+        [conn](sdbusplus::message_t& msg) {
+            using Association =
+                std::tuple<std::string, std::string, std::string>;
+            using InterfacesAdded = std::vector<std::pair<
+                std::string,
+                std::vector<std::pair<
+                    std::string, std::variant<std::vector<Association>>>>>>;
 
-        sdbusplus::message::object_path o;
-        InterfacesAdded interfacesAdded;
+            sdbusplus::message::object_path o;
+            InterfacesAdded interfacesAdded;
 
-        try
-        {
-            msg.read(o);
-            msg.read(interfacesAdded);
-        }
-        catch (const std::exception& e)
-        {
-            error(
-                "Exception occurred while processing interfacesAdded:  {EXCEPTION}",
-                "EXCEPTION", e.what());
-            return;
-        }
-
-        // Ignore any signal coming from health-monitor itself.
-        if (msg.get_sender() == conn->get_unique_name())
-        {
-            return;
-        }
-
-        // Check if the BMC Inventory is in the interfaces created.
-        bool hasBmcConfiguration = false;
-        for (const auto& x : interfacesAdded)
-        {
-            if (x.first == BMC_CONFIGURATION)
+            try
             {
-                hasBmcConfiguration = true;
+                msg.read(o);
+                msg.read(interfacesAdded);
             }
-        }
+            catch (const std::exception& e)
+            {
+                error(
+                    "Exception occurred while processing interfacesAdded:  {EXCEPTION}",
+                    "EXCEPTION", e.what());
+                return;
+            }
 
-        if (hasBmcConfiguration)
-        {
-            info(
-                "BMC configuration detected, will create a corresponding Inventory item");
-            healthMon->createBmcInventoryIfNotCreated();
-            needUpdate = true;
-        }
-            });
+            // Ignore any signal coming from health-monitor itself.
+            if (msg.get_sender() == conn->get_unique_name())
+            {
+                return;
+            }
+
+            // Check if the BMC Inventory is in the interfaces created.
+            bool hasBmcConfiguration = false;
+            for (const auto& x : interfacesAdded)
+            {
+                if (x.first == BMC_CONFIGURATION)
+                {
+                    hasBmcConfiguration = true;
+                }
+            }
+
+            if (hasBmcConfiguration)
+            {
+                info(
+                    "BMC configuration detected, will create a corresponding Inventory item");
+                healthMon->createBmcInventoryIfNotCreated();
+                needUpdate = true;
+            }
+        });
 
     // Start the timer
     boost::asio::post(io, [conn]() {

@@ -34,7 +34,9 @@ executable(
 )
 
 install_data(sources : 'bmc_health_config.json', install_dir : '/etc/healthMon')
-install_data(sources : 'systemRecovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+install_data(sources : 'system_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+install_data(sources : 'run_top.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+install_data(sources : 'system_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 
 conf_data = configuration_data()
 conf_data.set('HEALTH_CONFIG_FILE', '"/etc/healthMon/bmc_health_config.json"')
@@ -58,7 +60,14 @@ configure_file(
 
   configure_file(
   input: 'systemrecovery.service.in',
-  output: 'HealthMonitorSystemRecovery@.service',
+  output: 'HMSystemRecovery@.service',
+  configuration: conf_data,
+  install: true,
+  install_dir: systemd.get_variable('systemdsystemunitdir'))
+  
+  configure_file(
+  input: 'systemwarning.service.in',
+  output: 'HMSystemWarning@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
