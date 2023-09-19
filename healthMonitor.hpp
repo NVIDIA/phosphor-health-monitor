@@ -15,6 +15,7 @@
 constexpr char BMC_INVENTORY_ITEM[] = "xyz.openbmc_project.Inventory.Item.Bmc";
 constexpr char BMC_CONFIGURATION[] = "xyz.openbmc_project.Configuration.Bmc";
 
+#include <chrono>
 #include <deque>
 #include <limits>
 #include <map>
@@ -121,14 +122,14 @@ class HealthSensor : public healthIfaces
     /** @brief Check Sensor threshold and update alarm and log */
     void checkSensorThreshold(const double value);
     /** @brief create Redfish log  */
-    void createRFLogEntry(const std::string &messageId,
-                          const std::string &messageArgs,
-                          const std::string &level);
+    void createRFLogEntry(const std::string& messageId,
+                          const std::string& messageArgs,
+                          const std::string& level);
 
     /** @brief create Sensor Treshold Redfish log  */
-    void createTresholdLogEntry(const std::string &treshold,
-                                const std::string &sensorName, double value,
-                                const double configTresholdValue);
+    void createThresholdLogEntry(const std::string& threshold,
+                                const std::string& sensorName, double value,
+                                const double configThresholdValue);
 
   private:
     /** @brief sdbusplus bus client connection. */
@@ -139,11 +140,19 @@ class HealthSensor : public healthIfaces
     sdeventplus::Event timerEvent;
     /** @brief Sensor Read Timer */
     sdeventplus::utility::Timer<sdeventplus::ClockId::Monotonic> readTimer;
+    std::chrono::time_point<std::chrono::high_resolution_clock>
+        lastCriticalLogLoggedTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock>
+        lastWarningLogLoggedTime;
     /** @brief Read sensor at regular intrval */
     void readHealthSensor();
+    /** @brief check critical log rate limit */
+    bool checkCriticalLogRateLimitWindow();
+    /** @brief check warning log rate limit */
+    bool checkWarningLogRateLimitWindow();
     /** @brief Start configured threshold systemd unit */
-    void startUnit(const std::string &sysdUnit, const std::string &threshold,
-                   const std::string &resource, const std::string &path);
+    void startUnit(const std::string& sysdUnit,
+                   const std::string& resource, const std::string& path);
 };
 
 class BmcInventory : public BmcInterface
@@ -181,6 +190,9 @@ class HealthMon
         recreateSensors();
     }
 
+    /** Sleep until boot delay time */
+    void sleepuntilSystemBoot();
+
     /** @brief Parse Health config JSON file  */
     Json parseConfigFile(std::string configFile);
 
@@ -200,12 +212,15 @@ class HealthMon
     std::shared_ptr<BmcInventory> bmcInventory;
 
     bool bmcInventoryCreated();
-
+    unsigned int getlogRateLimit() { return logRateLimit; } 
   private:
+    /** @brief Logging Rate Limit */
+    unsigned int logRateLimit;
     sdbusplus::bus_t& bus;
     std::vector<HealthConfig> sensorConfigs;
     std::vector<HealthConfig> getHealthConfig();
     sdbusplus::server::manager_t sensorsObjectManager;
+    unsigned int bootDelay;
 };
 
 } // namespace health

@@ -1,7 +1,7 @@
 [Unit]
 Description=System level Recovery Action Script
 [Service]
-ExecStart=/usr/bin/systemRecovery_action.sh %I 
+ExecStart=/usr/bin/system_recovery_action.sh %I
 Type=oneshot
  
 [Install]

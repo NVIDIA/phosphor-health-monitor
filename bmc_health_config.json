@@ -1,49 +1,51 @@
 {
+    "LogRateLimit": 300,
+    "BootDelay": 720,
     "CPU": {
         "Frequency": 1,
-        "Window_size": 480,
+        "Window_size": 300,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
     "CPU_User": {
         "Frequency": 1,
-        "Window_size": 480,
+        "Window_size": 300,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
     "CPU_Kernel": {
         "Frequency": 1,
-        "Window_size": 480,
+        "Window_size": 300,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
@@ -54,12 +56,12 @@
             "Critical": {
                 "Value": 85.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
@@ -71,12 +73,12 @@
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
@@ -88,12 +90,12 @@
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     },
@@ -105,12 +107,12 @@
             "Critical": {
                 "Value": 95.0,
                 "Log": true,
-                "Target": "HealthMonitorSystemRecovery@.service"
+                "Target": "HMSystemRecovery@.service"
             },
             "Warning": {
                 "Value": 80.0,
                 "Log": true,
-                "Target": ""
+                "Target": "HMSystemWarning@.service"
             }
         }
     }
