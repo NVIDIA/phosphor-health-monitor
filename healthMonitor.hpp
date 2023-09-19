@@ -83,6 +83,7 @@ struct HealthConfig
     std::string criticalTgt;
     std::string warningTgt;
     std::string path;
+    std::string binaryName;
 };
 
 class HealthSensor : public healthIfaces
@@ -110,7 +111,16 @@ class HealthSensor : public healthIfaces
     {
         initHealthSensor(bmcIds);
     }
-
+    HealthSensor(sdbusplus::bus_t& bus, const char* objPath,
+                 HealthConfig& sensorConfig,
+                 const std::vector<std::string>& bmcIds, const int processId) :
+        healthIfaces(bus, objPath),
+        bus(bus), sensorConfig(sensorConfig),pid(processId),
+        timerEvent(sdeventplus::Event::get_default()),
+        readTimer(timerEvent, std::bind(&HealthSensor::readHealthSensor, this))
+    {
+        initHealthSensor(bmcIds);
+    }
     /** @brief list of sensor data values */
     std::deque<double> valQueue;
     /** @brief Initialize sensor, set default value and association */
@@ -136,6 +146,8 @@ class HealthSensor : public healthIfaces
     sdbusplus::bus_t& bus;
     /** @brief Sensor config from config file */
     HealthConfig& sensorConfig;
+    
+    int pid;
     /** @brief the Event Loop structure */
     sdeventplus::Event timerEvent;
     /** @brief Sensor Read Timer */
@@ -153,6 +165,11 @@ class HealthSensor : public healthIfaces
     /** @brief Start configured threshold systemd unit */
     void startUnit(const std::string& sysdUnit,
                    const std::string& resource, const std::string& path);
+    /** @brief Start configured threshold systemd unit */
+    void startUnit(const std::string& sysdUnit,
+                   const std::string& resource, 
+                   const std::string& binaryname, 
+                   const double usage);
 };
 
 class BmcInventory : public BmcInterface
@@ -187,7 +204,7 @@ class HealthMon
     {
         // Read JSON file
         sensorConfigs = getHealthConfig();
-        recreateSensors();
+        serviceSensorConfigs = getServiceHealthConfig();
     }
 
     /** Sleep until boot delay time */
@@ -206,9 +223,16 @@ class HealthMon
     /** @brief Create sensors for health monitoring */
     void createHealthSensors(const std::vector<std::string>& bmcIds);
 
+    /** @brief Create service sensors for health monitoring */
+    void createServiceHealthSensor(const std::vector<std::string>& bmcIds);
+
     /** @brief Create the BMC Inventory object */
     void createBmcInventoryIfNotCreated();
-
+    
+    /** create individual health sensor instance*/
+    void createServiceHealthSensorInstance(HealthConfig& cfg, 
+                            const std::vector<std::string>& bmcInventoryPaths,
+                            int pid);
     std::shared_ptr<BmcInventory> bmcInventory;
 
     bool bmcInventoryCreated();
@@ -218,7 +242,9 @@ class HealthMon
     unsigned int logRateLimit;
     sdbusplus::bus_t& bus;
     std::vector<HealthConfig> sensorConfigs;
+    std::vector<HealthConfig> serviceSensorConfigs;
     std::vector<HealthConfig> getHealthConfig();
+    std::vector<HealthConfig> getServiceHealthConfig();
     sdbusplus::server::manager_t sensorsObjectManager;
     unsigned int bootDelay;
 };

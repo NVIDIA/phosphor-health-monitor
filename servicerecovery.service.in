@@ -1,0 +1,8 @@
+[Unit]
+Description=Service level Recovery Action Script
+[Service]
+ExecStart=/usr/bin/service_recovery_action.sh %I 
+Type=oneshot
+ 
+[Install]
+WantedBy=multi-user.target
