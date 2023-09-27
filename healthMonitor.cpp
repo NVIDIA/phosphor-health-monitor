@@ -818,20 +818,6 @@ bool HealthSensor::checkWarningLogRateLimitWindow()
 void HealthSensor::checkSensorThreshold(const double value)
 {
     std::string path;
-    if(!sensorConfig.binaryName.empty() && sensorConfig.name.rfind(serviceCPU, 0) == 0)
-    {
-        std::string pid_path = "/tmp/" + sensorConfig.binaryName + "_" + std::to_string(pid) + ".txt";
-
-        std::ofstream outputFile(pid_path, std::ios::app);
-        //info("pid_path is {PID_PATH}", "PID_PATH", pid_path);
-        if (pid > 0 && outputFile.is_open()) {
-            // File is open in append mode, so you can write data to it
-            outputFile << "vlue = " << value << std::endl;
-
-            // Close the file when you're done
-            outputFile.close();
-        }
-    }
     if (std::isfinite(sensorConfig.criticalHigh) &&
         (value > sensorConfig.criticalHigh))
     {
