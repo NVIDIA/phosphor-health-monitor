@@ -1,0 +1,308 @@
+{
+    "Service_Memory_gpumgrd": {
+        "BinaryName": "gpumgrd",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 40.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 30.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_gpumgrd": {
+        "BinaryName": "gpumgrd",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 40.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 30.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_oobamld": {
+        "BinaryName": "oobamld",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 12.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 8.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_oobamld": {
+        "BinaryName": "oobamld",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_systemdjournal": {
+        "BinaryName": "systemd-journal",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 12.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 8.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_systemdjournal": {
+        "BinaryName": "systemd-journal",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_spdmd": {
+        "BinaryName": "spdmd",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_spdmd": {
+        "BinaryName": "spdmd",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_pldmd": {
+        "BinaryName": "pldmd",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 12.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 8.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_pldmd": {
+        "BinaryName": "pldmd",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_bmcweb": {
+        "BinaryName": "bmcweb",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_bmcweb": {
+        "BinaryName": "bmcweb",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 12.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 8.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+   },
+   "Service_CPU_mapper": {
+        "BinaryName": "mapperx",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_mapper": {
+        "BinaryName": "mapperx",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 12.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 8.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_usermanager": {
+        "BinaryName": "phosphor-user-m",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_usermanager": {
+        "BinaryName": "phosphor-user-m",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_Memory_rsyslogd": {
+        "BinaryName": "rsyslogd",
+        "Frequency": 20,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "Service_CPU_rsyslogd": {
+        "BinaryName": "rsyslogd",
+        "Frequency": 6,
+        "Window_size": 30,
+        "Threshold": {
+            "Critical": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning": {
+                "Value": 5.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    }
+}

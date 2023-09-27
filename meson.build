@@ -34,16 +34,22 @@ executable(
 )
 
 install_data(sources : 'bmc_health_config.json', install_dir : '/etc/healthMon')
+install_data(sources : 'service_health_config.json', install_dir : '/etc/healthMon')
 install_data(sources : 'system_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'run_top.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'system_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+install_data(sources : 'service_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
+install_data(sources : 'service_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 
 conf_data = configuration_data()
 conf_data.set('HEALTH_CONFIG_FILE', '"/etc/healthMon/bmc_health_config.json"')
+conf_data.set('SERVICE_HEALTH_CONFIG_FILE', '"/etc/healthMon/service_health_config.json"')
 conf_data.set('HEALTH_BUS_NAME', '"xyz.openbmc_project.HealthMon"')
 conf_data.set('HEALTH_SENSOR_PATH', '"/xyz/openbmc_project/sensors/utilization/"')
 conf_data.set('SENSOR_OBJPATH', '"/xyz/openbmc_project/sensors"')
 conf_data.set('INVENTORY_OBJPATH', '"/xyz/openbmc_project/inventory"')
+conf_data.set('PRINT_HELTH_CONFIG_ENABLED', true)
+
 
 configure_file(output : 'config.h',
                configuration : conf_data)
@@ -68,6 +74,20 @@ configure_file(
   configure_file(
   input: 'systemwarning.service.in',
   output: 'HMSystemWarning@.service',
+  configuration: conf_data,
+  install: true,
+  install_dir: systemd.get_variable('systemdsystemunitdir'))
+  
+  configure_file(
+  input: 'servicerecovery.service.in',
+  output: 'HMServiceRecovery@.service',
+  configuration: conf_data,
+  install: true,
+  install_dir: systemd.get_variable('systemdsystemunitdir'))
+  
+  configure_file(
+  input: 'servicewarning.service.in',
+  output: 'HMServiceWarning@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
