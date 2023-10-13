@@ -51,7 +51,7 @@
     },
     "Memory": {
         "Frequency": 1,
-        "Window_size": 8,
+        "Window_size": 10,
         "Threshold": {
             "Critical": {
                 "Value": 85.0,
@@ -68,7 +68,7 @@
     "Storage_RW": {
         "Path": "/run/initramfs/rw",
         "Frequency": 1,
-        "Window_size": 120,
+        "Window_size": 30,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
@@ -85,7 +85,7 @@
     "Storage_TMP": {
         "Path": "/tmp",
         "Frequency": 1,
-        "Window_size": 120,
+        "Window_size": 30,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
@@ -102,7 +102,7 @@
     "Storage_LOGGING": {
         "Path": "/var/lib/logging",
         "Frequency": 1,
-        "Window_size": 120,
+        "Window_size": 30,
         "Threshold": {
             "Critical": {
                 "Value": 95.0,
