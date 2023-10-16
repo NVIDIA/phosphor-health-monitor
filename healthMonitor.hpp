@@ -134,7 +134,8 @@ class HealthSensor : public healthIfaces
     /** @brief create Redfish log  */
     void createRFLogEntry(const std::string& messageId,
                           const std::string& messageArgs,
-                          const std::string& level);
+                          const std::string& level,
+                          const std::string& resolution);
 
     /** @brief create Sensor Treshold Redfish log  */
     void createThresholdLogEntry(const std::string& threshold,
