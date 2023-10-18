@@ -707,7 +707,8 @@ void HealthSensor::initHealthSensor(
 }
 void HealthSensor::createRFLogEntry(const std::string& messageId,
                                     const std::string& messageArgs,
-                                    const std::string& level)
+                                    const std::string& level,
+                                    const std::string& resolution)
 {
     auto method = this->bus.new_method_call(
         "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
@@ -715,10 +716,11 @@ void HealthSensor::createRFLogEntry(const std::string& messageId,
     // Signature is ssa{ss}
     method.append(messageId);
     method.append(level);
-    method.append(std::array<std::pair<std::string, std::string>, 2>(
+    method.append(std::array<std::pair<std::string, std::string>, 3>(
         {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
          std::pair<std::string, std::string>(
-             {"REDFISH_MESSAGE_ARGS", messageArgs})}));
+             {"REDFISH_MESSAGE_ARGS", messageArgs}),
+              std::pair<std::string, std::string>({"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
     try
     {
         // A strict timeout for logging service to fail early and ensure
@@ -742,6 +744,7 @@ void HealthSensor::createThresholdLogEntry(const std::string& threshold,
     std::string messageId = "OpenBMC.0.4.";
     std::string messageArgs{};
     std::string messageLevel{};
+    std::string resolution{};
     if (threshold == "warning")
     {
 
@@ -749,7 +752,8 @@ void HealthSensor::createThresholdLogEntry(const std::string& threshold,
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
-        createRFLogEntry(messageId, messageArgs, messageLevel);
+        resolution = "None";
+        createRFLogEntry(messageId, messageArgs, messageLevel, resolution);
     }
     else if (threshold == "critical")
     {
@@ -757,7 +761,8 @@ void HealthSensor::createThresholdLogEntry(const std::string& threshold,
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-        createRFLogEntry(messageId, messageArgs, messageLevel);
+        resolution ="None";
+        createRFLogEntry(messageId, messageArgs, messageLevel, resolution);
     }
     else
     {
