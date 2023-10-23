@@ -820,6 +820,30 @@ bool HealthSensor::checkWarningLogRateLimitWindow()
     return false;
 }
 
+bool HealthSensor::checkPeakLogRateLimitWindow()
+{
+    if (!std::chrono::duration_cast<std::chrono::seconds>(
+                lastPeakLogLoggedTime.time_since_epoch())
+            .count())
+    {
+        // Update the last Peak log loggedTime
+        lastPeakLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    std::chrono::duration<double> diff =
+        std::chrono::high_resolution_clock::now() -
+        lastPeakLogLoggedTime;
+
+    if (diff.count() > healthMon->getlogRateLimit())
+    {
+        // Update the last Peak log loggedTime
+        lastPeakLogLoggedTime =
+            std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    return false;
+}
 void HealthSensor::checkSensorThreshold(const double value)
 {
     std::string path;
@@ -926,6 +950,33 @@ void HealthSensor::checkSensorThreshold(const double value)
     }
 }
 
+void HealthSensor::checkServiceCpuPeak(const double value)
+{
+    if (!(sensorConfig.name.rfind(serviceCPU, 0) == 0))
+    {
+        return;
+    }
+
+    if(value > sensorConfig.criticalHigh)
+    {
+        if(checkPeakLogRateLimitWindow())
+        {
+            info(
+                "ASSERT: sensor {SENSOR} peak is above the upper threshold critical high",
+                "SENSOR", sensorConfig.name);
+            std::string messageId = "OpenBMC.0.4.";
+            std::string messageArgs{};
+            std::string messageLevel{};
+            std::string resolution{};
+            messageId += "BMCServicePeakResourceInfo";
+            messageArgs = sensorConfig.name + "," + std::to_string(value) + "," +
+                      std::to_string(sensorConfig.criticalHigh);
+            messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+            resolution ="None";
+            createRFLogEntry(messageId, messageArgs, messageLevel, resolution);            
+        }
+    }
+}
 void HealthSensor::readHealthSensor()
 {
     /* Read current sensor value */
@@ -982,6 +1033,9 @@ void HealthSensor::readHealthSensor()
     }
     /* Add new item at the back */
     valQueue.push_back(value);
+    
+    /*check if the sensor reading has crossed peak*/
+    checkServiceCpuPeak(value);
 
     /* Wait until the queue is filled with enough reference*/
     if (valQueue.size() < sensorConfig.windowSize)
