@@ -131,6 +131,8 @@ class HealthSensor : public healthIfaces
     void setSensorThreshold(double criticalHigh, double warningHigh);
     /** @brief Check Sensor threshold and update alarm and log */
     void checkSensorThreshold(const double value);
+    /** @brief Check Sensor peak value and create RF entry if its above critical*/
+    void checkServiceCpuPeak(const double value);
     /** @brief create Redfish log  */
     void createRFLogEntry(const std::string& messageId,
                           const std::string& messageArgs,
@@ -157,12 +159,16 @@ class HealthSensor : public healthIfaces
         lastCriticalLogLoggedTime;
     std::chrono::time_point<std::chrono::high_resolution_clock>
         lastWarningLogLoggedTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock>
+        lastPeakLogLoggedTime;
     /** @brief Read sensor at regular intrval */
     void readHealthSensor();
     /** @brief check critical log rate limit */
     bool checkCriticalLogRateLimitWindow();
     /** @brief check warning log rate limit */
     bool checkWarningLogRateLimitWindow();
+    /** @brief check Peak log rate limit */
+    bool checkPeakLogRateLimitWindow();
     /** @brief Start configured threshold systemd unit */
     void startUnit(const std::string& sysdUnit,
                    const std::string& resource, const std::string& path);
