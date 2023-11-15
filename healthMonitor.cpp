@@ -674,6 +674,8 @@ void HealthSensor::initHealthSensor(
         error("Exception occurred while reading sensor {SENSOR}: {ERROR}",
               "SENSOR", sensorConfig.name, "ERROR", e);
         readTimer.setEnabled(false);
+        healthMon->addPendingSensor(sensorConfig.name);
+        healthMon->enableTimer();
     }
 
     if (value < 0)
@@ -1018,6 +1020,8 @@ void HealthSensor::readHealthSensor()
         error("Exception occurred while reading sensor {SENSOR}: {ERROR}",
               "SENSOR", sensorConfig.name, "ERROR", e);
         readTimer.setEnabled(false);
+        healthMon->addPendingSensor(sensorConfig.name);
+        healthMon->enableTimer();
     }
     if (value < 0)
     {
@@ -1112,6 +1116,10 @@ void HealthSensor::startUnit(const std::string& sysdUnit,
     bus.call_noreply(msg);
 }
 
+int HealthSensor::getPID()
+{
+    return pid;
+}
 void HealthMon::recreateSensors()
 {
     PHOSPHOR_LOG2_USING;
@@ -1123,7 +1131,7 @@ void HealthMon::recreateSensors()
     createHealthSensors(bmcInventoryPaths);
     createServiceHealthSensor(bmcInventoryPaths);
 }
-
+ 
 void printConfig(HealthConfig& cfg)
 {
 #ifdef PRINT_HELTH_CONFIG_ENABLED
@@ -1155,6 +1163,18 @@ void HealthMon::createHealthSensors(
 
         /* Set configured values of crtical and warning high to dbus */
         healthSensor->setSensorThreshold(cfg.criticalHigh, cfg.warningHigh);
+    }
+}
+
+/*check for process whose sensors are not created initially*/
+void HealthMon::findPendingSensors()
+{
+    for(auto& cfg : serviceSensorConfigs)
+    {
+        if(healthSensors.find(cfg.name) == healthSensors.end())
+        {
+            pendingSensors.insert(cfg.name);
+        }
     }
 }
 
@@ -1218,6 +1238,8 @@ void HealthMon::createServiceHealthSensor(
         }
     }
     closedir(dir);
+    findPendingSensors();
+    enableTimer();
 }
 
 /** @brief Parsing Health config JSON file  */
@@ -1393,6 +1415,80 @@ void HealthMon::sleepuntilSystemBoot()
     sleep(bootDelay);
 }
 
+void HealthMon::createPendingSensors()
+{
+    info("calling function createPendingSensors");
+    std::vector<std::string> bmcInventoryPaths =
+        findPathsWithType(bus, BMC_INVENTORY_ITEM);
+
+    DIR* dir = opendir("/proc");
+    if (!dir) {
+        error("Failed to open the /proc directory");
+        return; 
+    }
+    dirent* entry;
+    while ((entry = readdir(dir))) {
+        if (entry->d_type == DT_DIR) {
+            // Check if the directory name is a number (potential process ID)
+            if (!containsOnlyDigits(entry->d_name)) {
+                continue;
+            }
+            int pid = std::stoi(entry->d_name);
+            if (pid != 0) 
+            {
+                // Build the path to the "comm" file for this process
+                std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
+
+                // Open the "comm" file for reading
+                std::ifstream commFile(commPath);
+                if (commFile) 
+                {
+                    std::string processName;
+                    std::getline(commFile, processName);
+
+                    // Check if the process name is pre-configured
+                    for (auto& cfg : serviceSensorConfigs)
+                    {
+                        if (cfg.binaryName == processName && ((cfg.name.rfind(serviceMemory, 0) == 0 ) 
+                                                          || (cfg.name.rfind(serviceCPU, 0) == 0 )))
+                        {
+                            if(healthSensors.find(cfg.name) == healthSensors.end())
+                            {
+                                removePendingSensor(cfg.name);
+                                info("ASSERT :: create HealthSensor for new service, Sensor name :: {SENSOR}","SENSOR",cfg.name);
+                                createServiceHealthSensorInstance(cfg, bmcInventoryPaths, pid);  
+                            }
+                            else if(healthSensors[cfg.name]->getPID() != pid)
+                            {
+                                healthSensors.erase(cfg.name);
+                                removePendingSensor(cfg.name);
+                                info("ASSERT :: create HealthSensor for PID restarted service, Sensor name :: {SENSOR}","SENSOR",cfg.name);
+                                createServiceHealthSensorInstance(cfg, bmcInventoryPaths, pid);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    closedir(dir); 
+    
+    if(getCountOfPendingSensors() == 0)
+    {
+        backgroundTimer.setEnabled(false);
+        info("function createPendingSensors disabled");
+    }
+    else
+    {
+        info("Pending Sensors are :: ");
+        for(auto sensors : pendingSensors)
+        {
+            info("{SENSORS}","SENSORS",sensors);
+        }
+    }
+
+}
+
 } // namespace health
 } // namespace phosphor
 
@@ -1474,7 +1570,8 @@ int main()
     // This case will be handled when dynamic services are supported
     // and below line can be moved to .hpp file as it was before.
     healthMon->recreateSensors();
-
+    
+ //   healthMon->initHealthMon();
     // Add object manager through object_server
     sdbusplus::asio::object_server objectServer(conn);
 

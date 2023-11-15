@@ -143,7 +143,8 @@ class HealthSensor : public healthIfaces
     void createThresholdLogEntry(const std::string& threshold,
                                 const std::string& sensorName, double value,
                                 const double configThresholdValue);
-
+    
+    int getPID();
   private:
     /** @brief sdbusplus bus client connection. */
     sdbusplus::bus_t& bus;
@@ -207,11 +208,14 @@ class HealthMon
      * @param[in] bus     - Handle to system dbus
      */
     HealthMon(sdbusplus::bus_t& bus) :
-        bus(bus), sensorsObjectManager(bus, "/xyz/openbmc_project/sensors")
+        bus(bus), sensorsObjectManager(bus, "/xyz/openbmc_project/sensors"),
+        timerEvent(sdeventplus::Event::get_default()),
+        backgroundTimer(timerEvent, std::bind(&HealthMon::createPendingSensors, this))
     {
         // Read JSON file
         sensorConfigs = getHealthConfig();
         serviceSensorConfigs = getServiceHealthConfig();
+        backgroundTimer.restart(std::chrono::milliseconds(60 * 1000));
     }
 
     /** Sleep until boot delay time */
@@ -243,16 +247,37 @@ class HealthMon
     std::shared_ptr<BmcInventory> bmcInventory;
 
     bool bmcInventoryCreated();
+
+    int getCountOfPendingSensors() { return pendingSensors.size(); }
+
+    void addPendingSensor(std::string & process) { pendingSensors.insert(process); }
+
+    void removePendingSensor(std::string & process) { pendingSensors.erase(process); }
+
+    void findPendingSensors();
+
+    void enableTimer() { backgroundTimer.setEnabled(true); }
+
     unsigned int getlogRateLimit() { return logRateLimit; } 
   private:
     /** @brief Logging Rate Limit */
     unsigned int logRateLimit;
     sdbusplus::bus_t& bus;
+    /** @brief data structure for storing pending sensors*/
+    std::set<std::string>pendingSensors;
+
     std::vector<HealthConfig> sensorConfigs;
     std::vector<HealthConfig> serviceSensorConfigs;
     std::vector<HealthConfig> getHealthConfig();
     std::vector<HealthConfig> getServiceHealthConfig();
+       
+    /** check for start/restart of pending HealthSensors*/
+    void createPendingSensors();
     sdbusplus::server::manager_t sensorsObjectManager;
+     /** @brief the Event Loop structure */
+    sdeventplus::Event timerEvent;
+     /** @brief HealthMon Read Timer */
+    sdeventplus::utility::Timer<sdeventplus::ClockId::Monotonic> backgroundTimer;
     unsigned int bootDelay;
 };
 
