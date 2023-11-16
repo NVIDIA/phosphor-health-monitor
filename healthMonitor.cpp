@@ -1571,12 +1571,14 @@ int main()
     // and below line can be moved to .hpp file as it was before.
     healthMon->recreateSensors();
     
- //   healthMon->initHealthMon();
     // Add object manager through object_server
     sdbusplus::asio::object_server objectServer(conn);
 
     sdbusplus::asio::sd_event_wrapper sdEvents(io);
-
+    
+    /*comment out code since we don't need DBUS ASSOCIATION now*/
+    #ifdef DBUS_ASSOCIATION
+    
     sensorRecreateTimer = std::make_shared<boost::asio::steady_timer>(io);
 
     // If the SystemInventory does not exist: wait for the InterfaceAdded signal
@@ -1637,6 +1639,9 @@ int main()
     boost::asio::post(io, [conn]() {
         sensorRecreateTimerCallback(sensorRecreateTimer, *conn);
     });
+
+    #endif
+
     io.run();
 
     return 0;
