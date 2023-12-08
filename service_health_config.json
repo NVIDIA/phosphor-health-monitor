@@ -18,16 +18,16 @@
     },
     "Service_CPU_gpumgrd": {
         "BinaryName": "gpumgrd",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 40.0,
+                "Value": 45.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 30.0,
+                "Value": 35.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -39,12 +39,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 12.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 8.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -52,16 +52,16 @@
     },
     "Service_CPU_oobamld": {
         "BinaryName": "oobamld",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -73,12 +73,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 12.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 8.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -86,16 +86,16 @@
     },
     "Service_CPU_systemdjournal": {
         "BinaryName": "systemd-journal",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 20.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -107,12 +107,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -120,16 +120,16 @@
     },
     "Service_CPU_spdmd": {
         "BinaryName": "spdmd",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -141,12 +141,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 12.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 8.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -154,16 +154,16 @@
     },
     "Service_CPU_pldmd": {
         "BinaryName": "pldmd",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 30.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -171,16 +171,16 @@
     },
     "Service_CPU_bmcweb": {
         "BinaryName": "bmcweb",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -192,12 +192,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 12.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 8.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -205,16 +205,16 @@
    },
    "Service_CPU_mapper": {
         "BinaryName": "mapperx",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 20.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -226,12 +226,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 12.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 8.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -239,16 +239,16 @@
     },
     "Service_CPU_usermanager": {
         "BinaryName": "phosphor-user-m",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -260,12 +260,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -277,12 +277,12 @@
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }
@@ -290,16 +290,16 @@
     },
     "Service_CPU_rsyslogd": {
         "BinaryName": "rsyslogd",
-        "Frequency": 6,
+        "Frequency": 10,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
-                "Value": 10.0,
+                "Value": 15.0,
                 "Log": true,
                 "Target": "HMServiceRecovery@.service"
             },
             "Warning": {
-                "Value": 5.0,
+                "Value": 10.0,
                 "Log": true,
                 "Target": "HMServiceWarning@.service"
             }

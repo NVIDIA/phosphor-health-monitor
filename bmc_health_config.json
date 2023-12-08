@@ -2,7 +2,7 @@
     "LogRateLimit": 300,
     "BootDelay": 720,
     "CPU": {
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 300,
         "Threshold": {
             "Critical": {
@@ -18,7 +18,7 @@
         }
     },
     "CPU_User": {
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 300,
         "Threshold": {
             "Critical": {
@@ -34,7 +34,7 @@
         }
     },
     "CPU_Kernel": {
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 300,
         "Threshold": {
             "Critical": {
@@ -50,7 +50,7 @@
         }
     },
     "Memory": {
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 10,
         "Threshold": {
             "Critical": {
@@ -67,7 +67,7 @@
     },
     "Storage_RW": {
         "Path": "/run/initramfs/rw",
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
@@ -84,7 +84,7 @@
     },
     "Storage_TMP": {
         "Path": "/tmp",
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
@@ -101,7 +101,7 @@
     },
     "Storage_LOGGING": {
         "Path": "/var/lib/logging",
-        "Frequency": 1,
+        "Frequency": 5,
         "Window_size": 30,
         "Threshold": {
             "Critical": {
