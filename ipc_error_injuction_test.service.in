@@ -1,0 +1,12 @@
+[Unit]
+Description= Subscribe and block
+After=obmc-mapper.target
+
+[Service]
+ExecStart=@bindir@/inject-error
+Type=simple
+Restart=always
+SyslogIdentifier=phosphor-ipc-monitor
+
+[Install]
+WantedBy=multi-user.target
