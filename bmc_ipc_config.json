@@ -1,0 +1,46 @@
+[
+  {
+    "bootDelay": {
+      "Duration": 720,
+      "Description": "Delay in seconds before starting the IPC monitor process."
+    },
+    "IpcConfig": {
+      "Ipc_name": "dbus",
+      "Frequency": 120,
+      "Window_size": 5,
+      "Log_rate_limit": 300,
+      "Parameters": [
+        {
+          "Key": "OutgoingBytes",
+          "Value_type": "int",
+          "Operator": "greater_than",
+          "Threshold": {
+            "Critical": {
+              "Value": 8388608,
+              "Target": "HMIpcRestart@.service"
+            },
+            "Warning": {
+              "Value": 6291456,
+              "Target": "log.target"
+            }
+          }
+        },
+        {
+          "Key": "IncomingBytes",
+          "Value_type": "int",
+          "Operator": "greater_than",
+          "Threshold": {
+            "Critical": {
+              "Value": 8388608,
+              "Target": "HMIpcRestart@.service"
+            },
+            "Warning": {
+              "Value": 6291456,
+              "Target": "log.target"
+            }
+          }
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,8 @@
+[Unit]
+Description=IPC level Recovery Action Script
+[Service]
+ExecStart=/usr/bin/ipc_recovery_action.sh %I
+Type=oneshot
+ 
+[Install]
+WantedBy=multi-user.target
