@@ -3,32 +3,35 @@ project(
     'cpp',
     version: '1.0',
     default_options: [
-        'cpp_std=c++20',
-        'werror=true',
+        'cpp_std=c++23',
     ],
-    meson_version: '>=0.58.0',
+    meson_version: '>=1.1.1',
 )
 
-cpp = meson.get_compiler('cpp')
-
-if cpp.has_header('nlohmann/json.hpp')
-    nlohmann_json = declare_dependency()
-else
-    subproject('nlohmann-json')
-    nlohmann_json = dependency('nlohmann_json')
-endif
+phosphor_logging_dep = dependency('phosphor-logging')
+phosphor_dbus_interfaces_dep = dependency('phosphor-dbus-interfaces')
+sdbusplus_dep = dependency('sdbusplus')
+sdeventplus_dep = dependency('sdeventplus')
+nlohmann_json_dep = dependency('nlohmann_json', include_type: 'system')
+base_deps = [
+    phosphor_logging_dep,
+    phosphor_dbus_interfaces_dep,
+    sdbusplus_dep,
+    sdeventplus_dep,
+    nlohmann_json_dep
+]
 
 executable(
     'health-monitor',
     [
-        'healthMonitor.cpp',
+        'health_metric_config.cpp',
+        'health_metric.cpp',
+        'health_utils.cpp',
+        'health_metric_collection.cpp',
+        'health_monitor.cpp',
     ],
     dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
+        base_deps
     ],
     install: true,
     install_dir: get_option('bindir')
@@ -43,11 +46,7 @@ executable(
         'dbusIpcSensor.cpp',
     ],
     dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
+        base_deps
     ],
     install: true,
     install_dir: get_option('bindir')
@@ -59,19 +58,15 @@ executable(
         'tools/dbus_error_injection.cpp',
     ],
     dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
+        base_deps
     ],
     install: false,
     install_dir: get_option('bindir')
 )
 
-install_data(sources : 'bmc_health_config.json', install_dir : '/etc/healthMon')
 install_data(sources : 'bmc_ipc_config.json', install_dir : '/etc/healthMon')
-install_data(sources : 'service_health_config.json', install_dir : '/etc/healthMon')
+install_data(sources : 'process_health_config.json', install_dir : '/etc/healthMon')
+install_data(sources : 'common_health_config.json', install_dir : '/etc/healthMon')
 install_data(sources : 'system_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'run_top.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'system_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
@@ -82,12 +77,13 @@ install_data(sources : 'ipc_recovery_action.sh', install_dir : get_option('bindi
 conf_data = configuration_data()
 conf_data.set('HEALTH_CONFIG_FILE', '"/etc/healthMon/bmc_health_config.json"')
 conf_data.set('IPC_CONFIG_FILE', '"/etc/healthMon/bmc_ipc_config.json"')
-conf_data.set('SERVICE_HEALTH_CONFIG_FILE', '"/etc/healthMon/service_health_config.json"')
+conf_data.set('SERVICE_HEALTH_CONFIG_FILE', '"/etc/healthMon/process_health_config.json"')
 conf_data.set('HEALTH_BUS_NAME', '"xyz.openbmc_project.HealthMon"')
 conf_data.set('HEALTH_SENSOR_PATH', '"/xyz/openbmc_project/sensors/utilization/"')
 conf_data.set('SENSOR_OBJPATH', '"/xyz/openbmc_project/sensors"')
 conf_data.set('INVENTORY_OBJPATH', '"/xyz/openbmc_project/inventory"')
-conf_data.set('PRINT_HELTH_CONFIG_ENABLED', true)
+conf_data.set('MONITOR_COLLECTION_INTERVAL', get_option('monitor-collection-interval'))
+conf_data.set('COMMON_HEALTH_CONFIG_FILE', '"/etc/healthMon/common_health_config.json"')
 
 configure_file(output : 'config.h',
                configuration : conf_data)
