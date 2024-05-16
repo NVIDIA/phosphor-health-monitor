@@ -16,14 +16,21 @@ class HealthMonitor
   public:
     HealthMonitor() = delete;
 
-    explicit HealthMonitor(sdbusplus::async::context& ctx,
-                           std::function<ConfigIntf::HealthMetric::map_t()> configFunction):
-        ctx(ctx), configs(configFunction())
+    HealthMonitor(sdbusplus::async::context& ctx) :
+        ctx(ctx), configs(ConfigIntf::getHealthMetricConfigs())
+    {
+        ctx.spawn(startup());
+    }
+    HealthMonitor(
+        sdbusplus::async::context& ctx,
+        std::function<ConfigIntf::HealthMetric::map_t()> configFunction) :
+        ctx(ctx),
+        configs(configFunction())
     {
         ctx.spawn(startup());
     }
 
-  protected:
+  private:
     /** @brief Setup and run a new health monitor object */
     auto startup() -> sdbusplus::async::task<>;
     /** @brief Run the health monitor */

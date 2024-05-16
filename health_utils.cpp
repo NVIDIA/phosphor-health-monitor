@@ -1,67 +1,57 @@
 #include "health_utils.hpp"
 
+#include <dirent.h>
+
 #include <phosphor-logging/lg2.hpp>
 #include <xyz/openbmc_project/ObjectMapper/client.hpp>
-#include <string>
-#include <dirent.h>
+
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <string>
 PHOSPHOR_LOG2_USING;
 
 namespace phosphor::health::utils
 {
 
 void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
-                             const std::string& resource,
-                             const std::string& path)
+               const std::string resource, const std::string path,
+               const std::string binaryname, const double usage)
 {
     if (sysdUnit.empty())
     {
         return;
     }
+    info("Starting systemd unit {UNIT} with resource {RESOURCE} path {PATH} "
+         "binaryname {BINARYNAME} usage {USAGE}",
+         "UNIT", sysdUnit, "RESOURCE", resource, "PATH", path, "BINARYNAME",
+         binaryname, "USAGE", usage);
     auto service = sysdUnit;
     std::string args;
     args += "\\x20";
     args += resource;
     args += "\\x20";
-    args += path;
-
-    std::replace(args.begin(), args.end(), '/', '-');
-    auto p = service.find('@');
-    if (p != std::string::npos)
-        service.insert(p + 1, args);
-
-    sdbusplus::message_t msg = bus.new_method_call(
-        "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-        "org.freedesktop.systemd1.Manager", "StartUnit");
-    msg.append(service, "replace");
-    bus.call_noreply(msg);
-}
-
-void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
-                             const std::string& resource,
-                             const std::string& binaryname,
-                             const double usage)
-{
-    if (sysdUnit.empty())
+    if (!path.empty())
     {
-        return;
+        args += path;
+        args += "\\x20";
     }
-    auto service = sysdUnit;
-    std::string args;
-    args += "\\x20";
-    args += resource;
-    args += "\\x20";
-    args += binaryname;
-    args += "\\x20";
-    args += usage;
+    if (!binaryname.empty())
+    {
+        args += binaryname;
+        args += "\\x20";
+    }
+    if (usage > 0)
+    {
+        args += std::to_string(usage);
+        args += "\\x20";
+    }
 
     std::replace(args.begin(), args.end(), '/', '-');
     auto p = service.find('@');
     if (p != std::string::npos)
         service.insert(p + 1, args);
-
+    info("Starting systemd unit {UNIT}", "UNIT", service);
     sdbusplus::message_t msg = bus.new_method_call(
         "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager", "StartUnit");
@@ -94,8 +84,10 @@ auto findPaths(sdbusplus::async::context& ctx, const std::string& iface,
 
 bool containsOnlyDigits(const std::string& str)
 {
-    for (char c : str) {
-        if (!isdigit(c)) {
+    for (char c : str)
+    {
+        if (!isdigit(c))
+        {
             return false;
         }
     }
@@ -106,7 +98,7 @@ int getSystemClockFrequency()
 {
     // get the number of clock ticks per second
     int hertz = sysconf(_SC_CLK_TCK);
-    if(hertz <= 0)
+    if (hertz <= 0)
     {
         hertz = 100; // assuming normal linux system
     }
@@ -117,24 +109,23 @@ int getNumberofCPU()
 {
     // get the number of processors in system
     int cpus = sysconf(_SC_NPROCESSORS_ONLN);
-    if(cpus <= 0)
+    if (cpus <= 0)
     {
         cpus = 1;
     }
     return cpus;
 }
-void createThresholdLogEntry(sdbusplus::bus_t& bus, const std::string& threshold,
-                                          const std::string& sensorName,
-                                          double value,
-                                          const double configThresholdValue)
+void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
+                             const std::string& sensorName, double value,
+                             const double configThresholdValue)
 {
     std::string messageId = "OpenBMC.0.4.";
     std::string messageArgs{};
     std::string messageLevel{};
     std::string resolution{};
-    if (threshold == "warning")
-    {
 
+    if (type == Threshold::Type::Warning)
+    {
         messageId += "SensorThresholdWarningHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
@@ -142,25 +133,24 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, const std::string& threshold
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
-    else if (threshold == "critical")
+    else if (type == Threshold::Type::Critical)
     {
         messageId += "SensorThresholdCriticalHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-        resolution ="None";
+        resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
     else
     {
         error("ERROR: Invalid threshold {TRESHOLD} used for log creation ",
-              "TRESHOLD", threshold);
+              "TRESHOLD", type);
     }
 }
 void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
-                                    const std::string& messageArgs,
-                                    const std::string& level,
-                                    const std::string& resolution)
+                      const std::string& messageArgs, const std::string& level,
+                      const std::string& resolution)
 {
     auto method = bus.new_method_call(
         "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
@@ -172,7 +162,8 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
         {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
          std::pair<std::string, std::string>(
              {"REDFISH_MESSAGE_ARGS", messageArgs}),
-              std::pair<std::string, std::string>({"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
+         std::pair<std::string, std::string>(
+             {"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
     try
     {
         // A strict timeout for logging service to fail early and ensure

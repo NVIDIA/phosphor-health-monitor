@@ -23,7 +23,6 @@ using json = nlohmann::json;
 
 // Default health metric config
 extern json defaultHealthMetricConfig;
-extern json defaultServiceMetricConfig;
 
 // Valid thresholds from config
 static const auto validThresholdTypesWithBound =
@@ -44,13 +43,13 @@ static const auto validThresholdTypes =
         {"Warning", ThresholdIntf::Type::Warning}};
 
 // Valid metrics from config
-static const auto validTypes =
-    std::unordered_map<std::string, Type>{{"CPU", Type::cpu},
-                                          {"Memory", Type::memory},
-                                          {"Storage", Type::storage},
-                                          {"Inode", Type::inode},
-                                          {"ProcessCPU", Type::processCPU},
-                                          {"ProcessMemory", Type::processMemory}};
+static const auto validTypes = std::unordered_map<std::string, Type>{
+    {"CPU", Type::cpu},
+    {"Memory", Type::memory},
+    {"Storage", Type::storage},
+    {"Inode", Type::inode},
+    {"ProcessCPU", Type::processCPU},
+    {"ProcessMemory", Type::processMemory}};
 
 // Valid submetrics from config
 static const auto validSubTypes = std::unordered_map<std::string, SubType>{
@@ -144,15 +143,16 @@ void printConfig(HealthMetric::map_t& configs)
     {
         for (auto& config : configList)
         {
-            debug(
+            info(
                 "TYPE={TYPE}, NAME={NAME} SUBTYPE={SUBTYPE} PATH={PATH}, WSIZE={WSIZE}, HYSTERESIS={HYSTERESIS}, BINARYNAME={BINARYNAME}, FREQUENCY={FREQUENCY}",
                 "TYPE", type, "NAME", config.name, "SUBTYPE", config.subType,
                 "PATH", config.path, "WSIZE", config.windowSize, "HYSTERESIS",
-                config.hysteresis, "BINARYNAME", config.binaryName, "FREQUENCY", config.frequency);
+                config.hysteresis, "BINARYNAME", config.binaryName, "FREQUENCY",
+                config.frequency);
 
             for (auto& [key, threshold] : config.thresholds)
             {
-                debug(
+                info(
                     "THRESHOLD TYPE={TYPE} THRESHOLD BOUND={BOUND} VALUE={VALUE} LOG={LOG} TARGET={TARGET}",
                     "TYPE", get<ThresholdIntf::Type>(key), "BOUND",
                     get<ThresholdIntf::Bound>(key), "VALUE", threshold.value,
@@ -169,7 +169,6 @@ auto getHealthMetricConfigs() -> HealthMetric::map_t
     if (auto platformConfig = parseConfigFile(HEALTH_CONFIG_FILE);
         !platformConfig.empty())
     {
-        info("Merging platform health metric config");
         mergedConfig.merge_patch(platformConfig);
     }
 
@@ -205,12 +204,12 @@ json defaultHealthMetricConfig = R"({
             "Critical_Upper": {
                 "Value": 90.0,
                 "Log": true,
-                "Target": "HMSystemRecovery@.service"
+                "Target": ""
             },
             "Warning_Upper": {
                 "Value": 80.0,
                 "Log": false,
-                "Target": "HMSystemWarning@.service"
+                "Target": ""
             }
         }
     },
@@ -225,7 +224,7 @@ json defaultHealthMetricConfig = R"({
             "Critical_Lower": {
                 "Value": 15.0,
                 "Log": true,
-                "Target": "HMSystemRecovery@.service"
+                "Target": ""
             }
         }
     },
@@ -236,7 +235,7 @@ json defaultHealthMetricConfig = R"({
             "Critical_Upper": {
                 "Value": 85.0,
                 "Log": true,
-                "Target": "HMSystemRecovery@.service"
+                "Target": ""
             }
         }
     },
@@ -248,7 +247,7 @@ json defaultHealthMetricConfig = R"({
             "Critical_Lower": {
                 "Value": 15.0,
                 "Log": true,
-                "Target": "HMSystemRecovery@.service"
+                "Target": ""
             }
         }
     },
@@ -258,13 +257,13 @@ json defaultHealthMetricConfig = R"({
             "Critical_Lower": {
                 "Value": 15.0,
                 "Log": true,
-                "Target": "HMSystemRecovery@.service"
+                "Target": ""
             }
         }
     }
 })"_json;
 
-auto getServiceMetricConfigs()  -> HealthMetric::map_t
+auto getServiceMetricConfigs() -> HealthMetric::map_t
 {
     auto platformConfig = parseConfigFile(SERVICE_HEALTH_CONFIG_FILE);
 
@@ -283,49 +282,22 @@ auto getServiceMetricConfigs()  -> HealthMetric::map_t
         auto config = metric.template get<HealthMetric>();
         config.name = name;
         std::string subType = "NA";
-        if(typeStr == "ProcessCPU")
+        if (typeStr == "ProcessCPU")
         {
             subType = "CPU_Processes";
         }
-        else if(typeStr == "ProcessMemory")
+        else if (typeStr == "ProcessMemory")
         {
             subType = "Memory_Processes";
         }
         auto var = validSubTypes.find(subType);
         config.subType = (var != validSubTypes.end() ? var->second
-                                                         : SubType::NA);
+                                                     : SubType::NA);
 
         configs[type->second].emplace_back(std::move(config));
     }
     printConfig(configs);
     return configs;
-}
-uint16_t logRateLimit = 0;
-uint16_t bootDelay = 0;
-auto parseCommonConfig() -> void
-{
-    json platformConfig = parseConfigFile(COMMON_HEALTH_CONFIG_FILE);
-    for(const auto& [key, value] : platformConfig.items())
-    {
-        if (key == "BootDelay") {
-            bootDelay = value.get<int>();
-            debug("Boot delay: {DELAY}", "DELAY", bootDelay);
-        }
-        if (key == "LogRateLimit") {
-            logRateLimit = value.get<int>();
-            debug("Log rate limit: {LIMIT}", "LIMIT", logRateLimit);
-        }
-    }
-}
-
-uint16_t getLogRateLimit()
-{
-    return logRateLimit;
-}
-
-uint16_t getBootDelay()
-{
-    return bootDelay;
 }
 
 } // namespace config

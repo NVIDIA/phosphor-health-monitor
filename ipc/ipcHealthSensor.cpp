@@ -34,7 +34,8 @@ void IPCHealthSensor::initSensor()
     for (auto& paramConfig : ipcConfig.paramConfig)
     {
         // list the properties to be monitored
-        statistics.push_back(std::make_pair(paramConfig.key, paramConfig.valueType));
+        statistics.push_back(
+            std::make_pair(paramConfig.key, paramConfig.valueType));
     }
 
     try

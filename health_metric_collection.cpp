@@ -1,15 +1,15 @@
 #include "health_metric_collection.hpp"
 
+#include <dirent.h>
+
 #include <phosphor-logging/lg2.hpp>
 
-#include <fstream>
-#include <numeric>
-#include <unordered_map>
-#include <string>
-#include <dirent.h>
 #include <cstring>
 #include <fstream>
+#include <numeric>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 extern "C"
 {
 #include <sys/statvfs.h>
@@ -20,30 +20,34 @@ PHOSPHOR_LOG2_USING;
 namespace phosphor::health::metric::collection
 {
 
-int HealthMetricCollection::hertz = phosphor::health::utils::getSystemClockFrequency();
+int HealthMetricCollection::hertz =
+    phosphor::health::utils::getSystemClockFrequency();
 int HealthMetricCollection::cpus = phosphor::health::utils::getNumberofCPU();
 
 auto HealthMetricCollection::readProcessCPU() -> bool
 {
     for (auto& config : configs)
     {
-        if(metrics.find(config.name) == metrics.end())
+        if (metrics.find(config.name) == metrics.end())
         {
             continue;
         }
+#ifdef ENABLE_DEBUG
         debug("Reading process CPU metric for {NAME}", "NAME", config.name);
+#endif
         int pid = metrics[config.name]->getPid();
-        if(pid <= -1)
+        if (pid <= -1)
         {
             error("Failed to get PID for process {NAME}", "NAME", config.name);
             continue;
         }
         std::string statFilePath = "/proc/" + std::to_string(pid) + "/stat";
         std::ifstream statFile(statFilePath);
-        if (!statFile.is_open()) 
+        if (!statFile.is_open())
         {
-            const std::string error = "Failed to open. " + statFilePath;
-            throw std::runtime_error(error);
+            error("Failed to open {PATH} for reading process CPU stats", "PATH",
+                  statFilePath);
+            throw std::runtime_error(config.name);
         }
 
         // Read the line from the stat file
@@ -62,55 +66,63 @@ auto HealthMetricCollection::readProcessCPU() -> bool
         int starttime;
 
         // Extract the required fields from the line
-        iss >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr >> tpgid >>
-            flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime >>
-            cutime >> cstime >> priority >> nice >> num_threads >> itrealvalue >>
-            starttime;
+        iss >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr >>
+            tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >>
+            stime >> cutime >> cstime >> priority >> nice >> num_threads >>
+            itrealvalue >> starttime;
 
         // Calculate the total time spent by the process in user mode and kernel
         // mode
-        int activeTime = utime + stime;// + cutime + cstime;
+        int activeTime = utime + stime; // + cutime + cstime;
+#ifdef ENABLE_DEBUG
         debug("activeTime is {ACTIVE_TIME}", "ACTIVE_TIME", activeTime);
+#endif
 
         struct timeval t;
         struct timezone timez;
         float elapsedTime;
 
-        static std::unordered_map<int, std::pair<__time_t, __suseconds_t> > preElapsedTime;
+        static std::unordered_map<int, std::pair<__time_t, __suseconds_t>>
+            preElapsedTime;
         static std::unordered_map<int, int> preActiveTime;
         gettimeofday(&t, &timez);
 
-        if(preElapsedTime.find(pid) == preElapsedTime.end() ||
-                    preActiveTime.find(pid) == preActiveTime.end())
+        if (preElapsedTime.find(pid) == preElapsedTime.end() ||
+            preActiveTime.find(pid) == preActiveTime.end())
         {
             preElapsedTime[pid] = std::make_pair(0, 0);
             preActiveTime[pid] = 0;
         }
 
-        elapsedTime = (t.tv_sec - preElapsedTime[pid].first)
-        + (float) (t.tv_usec - preElapsedTime[pid].second) / 1000000.0;
+        elapsedTime = (t.tv_sec - preElapsedTime[pid].first) +
+                      (float)(t.tv_usec - preElapsedTime[pid].second) /
+                          1000000.0;
 
         preElapsedTime[pid] = std::make_pair(t.tv_sec, t.tv_usec);
         debug("elapsedTime is {ELAPSED_TIME}", "ELAPSED_TIME", elapsedTime);
 
         int activeTimeDiff = activeTime - preActiveTime[pid];
-        debug("activeTimeDiff is {ACTIVE_TIME_DIFF}", "ACTIVE_TIME_DIFF", activeTimeDiff);
+        debug("activeTimeDiff is {ACTIVE_TIME_DIFF}", "ACTIVE_TIME_DIFF",
+              activeTimeDiff);
         preActiveTime[pid] = activeTime;
-
+#ifdef ENABLE_DEBUG
         debug("hertz is {HERTZ}", "HERTZ", hertz);
         debug("cpus is {CPUS}", "CPUS", cpus);
+#endif
 
-        if(elapsedTime <= 0 || hertz <= 0 || cpus <= 0)
+        if (elapsedTime <= 0 || hertz <= 0 || cpus <= 0)
         {
             continue;
         }
 
         // Calculate the CPU usage percentage
-        double  cpuUsagePercentage =  ( activeTimeDiff/cpus ) * ( 100/hertz ) / elapsedTime;
-        debug("CPU percentage for process {PID} is {CPU_PERCENTAGE}", "PID", pid,
-            "CPU_PERCENTAGE", cpuUsagePercentage);
-
-        if(cpuUsagePercentage > 100)
+        double cpuUsagePercentage = (activeTimeDiff / cpus) * (100 / hertz) /
+                                    elapsedTime;
+#ifdef ENABLE_DEBUG
+        debug("CPU percentage for process {PID} is {CPU_PERCENTAGE}", "PID",
+              pid, "CPU_PERCENTAGE", cpuUsagePercentage);
+#endif
+        if (cpuUsagePercentage > 100)
         {
             cpuUsagePercentage = 100;
         }
@@ -126,19 +138,22 @@ long long HealthMetricCollection::calculateTotalMemory()
     // Build the path to the meminfo file
     std::string meminfoPath = "/proc/meminfo";
     std::ifstream meminfoFile(meminfoPath);
-    
+
     // Open the meminfo file for reading
     if (!meminfoFile.is_open())
     {
-        const std::string error = "Failed to open. " + meminfoPath;
-        throw std::runtime_error(error);
+        error("Failed to open {PATH} for reading total memory", "PATH",
+              meminfoPath);
+        return -1;
     }
 
     // Read the MemTotal field from meminfo file
     std::string line;
     long long totalMemoryKB = -1;
-    while (std::getline(meminfoFile, line)) {
-        if (line.find("MemTotal:") == 0) {
+    while (std::getline(meminfoFile, line))
+    {
+        if (line.find("MemTotal:") == 0)
+        {
             std::istringstream iss(line);
             std::string field;
             iss >> field >> totalMemoryKB;
@@ -146,7 +161,10 @@ long long HealthMetricCollection::calculateTotalMemory()
         }
     }
     meminfoFile.close();
-    debug("Total memory on the system is {TOTAL_MEMORY}", "TOTAL_MEMORY", totalMemoryKB);
+#ifdef ENABLE_DEBUG
+    debug("Total memory on the system is {TOTAL_MEMORY}", "TOTAL_MEMORY",
+          totalMemoryKB);
+#endif
     return totalMemoryKB;
 }
 auto HealthMetricCollection::readProcessMemory() -> bool
@@ -155,12 +173,12 @@ auto HealthMetricCollection::readProcessMemory() -> bool
 
     for (auto& config : configs)
     {
-        if(metrics.find(config.name) == metrics.end())
+        if (metrics.find(config.name) == metrics.end())
         {
             continue;
         }
         int pid = metrics[config.name]->getPid();
-        if(pid <= 0)
+        if (pid <= 0)
         {
             error("Failed to get PID for process {NAME}", "NAME", config.name);
             continue;
@@ -169,10 +187,11 @@ auto HealthMetricCollection::readProcessMemory() -> bool
         std::string statmPath = "/proc/" + std::to_string(pid) + "/statm";
         std::ifstream statmFile(statmPath);
         // Open the statm file for reading
-        if (!statmFile.is_open()) 
+        if (!statmFile.is_open())
         {
-            const std::string error = "Failed to open. " + statmPath;
-            throw std::runtime_error(error);
+            error("Failed to open {PATH} for reading process memory stats",
+                  "PATH", statmPath);
+            throw std::runtime_error(config.name);
         }
         // Read the resident set size (RSS) from the statm file
         long long resident;
@@ -180,12 +199,17 @@ auto HealthMetricCollection::readProcessMemory() -> bool
 
         // Calculate memory usage in kilo bytes
         long long memoryUsageKB = resident * sysconf(_SC_PAGESIZE) / 1024;
-
-        double memoryUsagePercentage = static_cast<double>(memoryUsageKB) / totalMemoryKB * 100.0;
+        if (totalMemoryKB <= 0)
+        {
+            throw std::runtime_error(config.name);
+        }
+        double memoryUsagePercentage = static_cast<double>(memoryUsageKB) /
+                                       totalMemoryKB * 100.0;
         statmFile.close();
-
-        debug("Memory percentage for process {PID} is {MEMORY_PERCENTAGE}", "PID", pid,
-            "MEMORY_PERCENTAGE", memoryUsagePercentage);
+#ifdef ENABLE_DEBUG
+        debug("Memory percentage for process {PID} is {MEMORY_PERCENTAGE}",
+              "PID", pid, "MEMORY_PERCENTAGE", memoryUsagePercentage);
+#endif
         metrics[config.name]->update(MValue(memoryUsagePercentage, 100));
     }
     return true;
@@ -274,8 +298,10 @@ auto HealthMetricCollection::readCPU() -> bool
         preTotalTime[config.subType] = totalTime;
 
         activePercValue = (100.0 * activeTimeDiff) / totalTimeDiff;
+#ifdef ENABLE_DEBUG
         debug("CPU Metric {SUBTYPE}: {VALUE}", "SUBTYPE", config.subType,
               "VALUE", (double)activePercValue);
+#endif
         /* For CPU, both user and monitor uses percentage values */
         metrics[config.name]->update(MValue(activePercValue, 100));
     }
@@ -332,8 +358,10 @@ auto HealthMetricCollection::readMemory() -> bool
         // Convert kB to Bytes
         auto value = memoryValues.at(config.subType) * 1024;
         auto total = memoryValues.at(MetricIntf::SubType::memoryTotal) * 1024;
+#ifdef ENABLE_DEBUG
         debug("Memory Metric {SUBTYPE}: {VALUE}, {TOTAL}", "SUBTYPE",
               config.subType, "VALUE", value, "TOTAL", total);
+#endif
         metrics[config.name]->update(MValue(value, total));
     }
     return true;
@@ -344,7 +372,9 @@ auto HealthMetricCollection::readStorage() -> bool
     for (auto& config : configs)
     {
         struct statvfs buffer;
+#ifdef ENABLE_DEBUG
         debug("Reading storage metric for {PATH}", "PATH", config.path);
+#endif
         if (statvfs(config.path.c_str(), &buffer) != 0)
         {
             auto e = errno;
@@ -354,8 +384,10 @@ auto HealthMetricCollection::readStorage() -> bool
         }
         double value = buffer.f_bfree * buffer.f_frsize;
         double total = buffer.f_blocks * buffer.f_frsize;
+#ifdef ENABLE_DEBUG
         debug("Storage Metric {SUBTYPE}: {VALUE}, {TOTAL}", "SUBTYPE",
               config.subType, "VALUE", value, "TOTAL", total);
+#endif
         metrics[config.name]->update(MValue(value, total));
     }
     return true;
@@ -397,7 +429,11 @@ void HealthMetricCollection::read()
             }
             catch (const std::exception& e)
             {
-                error("Failed to read process CPU health metric: {ERROR}", "ERROR", e.what());
+                error(
+                    "Exception occured while reading process CPU health metric for : {ERROR}",
+                    "ERROR", e.what());
+                std::string configName = e.what();
+                addPendingConfig(configName);
             }
             break;
         }
@@ -409,7 +445,11 @@ void HealthMetricCollection::read()
             }
             catch (const std::exception& e)
             {
-                error("Failed to read process memory health metric: {ERROR}", "ERROR", e.what());
+                error(
+                    "Exception occured while reading process Memory health metric for : {ERROR}",
+                    "ERROR", e.what());
+                std::string configName = e.what();
+                addPendingConfig(configName);
             }
             break;
         }
@@ -421,30 +461,13 @@ void HealthMetricCollection::read()
     }
 }
 
-void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
+void HealthMetricCollection::createPendingConfigs()
 {
-    metrics.clear();
-    if(type == MetricIntf::Type::processCPU || type == MetricIntf::Type::processMemory)
+    DIR* dir = opendir("/proc");
+    if (!dir)
     {
-        createProcessMetric(bmcPaths);
-    }
-    else
-    {
-        for (auto& config : configs)
-        {
-            debug("Creating health metric {NAME}", "NAME", config.name);
-            metrics[config.name] = std::make_unique<MetricIntf::HealthMetric>(
-                bus, type, config, bmcPaths);
-        }
-    }
-}
-
-void HealthMetricCollection::createProcessMetric(const MetricIntf::paths_t& bmcPaths)
-{
-     DIR* dir = opendir("/proc");
-    if (!dir) {
         error("Failed to open the /proc directory");
-        return; 
+        return;
     }
     dirent* entry;
     while ((entry = readdir(dir)))
@@ -452,18 +475,114 @@ void HealthMetricCollection::createProcessMetric(const MetricIntf::paths_t& bmcP
         if (entry->d_type == DT_DIR)
         {
             // Check if the directory name is a number (potential process ID)
-            if (! phosphor::health::utils::containsOnlyDigits(entry->d_name)) {
+            if (!phosphor::health::utils::containsOnlyDigits(entry->d_name))
+            {
                 continue;
             }
             int pid = std::stoi(entry->d_name);
-            if (pid != 0) 
+            if (pid != 0)
             {
                 // Build the path to the "comm" file for this process
                 std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
 
                 // Open the "comm" file for reading
                 std::ifstream commFile(commPath);
-                if (commFile) 
+                if (commFile)
+                {
+                    std::string processName;
+                    std::getline(commFile, processName);
+
+                    for (auto config : configs)
+                    {
+                        if (config.name == "bmcweb")
+                        {
+                            info(
+                                "Checking for pending config for process {NAME}",
+                                "NAME", config.name);
+                            info(
+                                "Checking for pending config for binaryName {NAME}",
+                                "NAME", config.binaryName);
+                            for (auto pendingConfig : pendingConfigs)
+                            {
+                                info(
+                                    "Checking for pending config for pendingConfigs {NAME}",
+                                    "NAME", pendingConfig.c_str());
+                            }
+                        }
+                        if (config.binaryName == processName &&
+                            pendingConfigs.find(config.name) !=
+                                pendingConfigs.end())
+                        {
+#ifdef ENABLE_DEBUG
+                            // update pid of health metric object for this
+                            // process
+                            debug(
+                                "Updating pid of health metric for process {NAME}",
+                                "NAME", config.name);
+#endif
+                            info(
+                                "Updating pid of health metric for process {NAME} and pid {PID}",
+                                "NAME", config.name, "PID", pid);
+                            metrics[config.name]->setPid(pid);
+                            removePendingConfig(config.name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    closedir(dir);
+}
+
+void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
+{
+    metrics.clear();
+    if (type == MetricIntf::Type::processCPU ||
+        type == MetricIntf::Type::processMemory)
+    {
+        createProcessMetric(bmcPaths);
+    }
+    else
+    {
+        for (auto& config : configs)
+        {
+#ifdef ENABLE_DEBUG
+            debug("Creating health metric {NAME}", "NAME", config.name);
+#endif
+            metrics[config.name] = std::make_unique<MetricIntf::HealthMetric>(
+                bus, type, config, bmcPaths);
+        }
+    }
+}
+
+void HealthMetricCollection::createProcessMetric(
+    const MetricIntf::paths_t& bmcPaths)
+{
+    DIR* dir = opendir("/proc");
+    if (!dir)
+    {
+        error("Failed to open the /proc directory");
+        return;
+    }
+    dirent* entry;
+    while ((entry = readdir(dir)))
+    {
+        if (entry->d_type == DT_DIR)
+        {
+            // Check if the directory name is a number (potential process ID)
+            if (!phosphor::health::utils::containsOnlyDigits(entry->d_name))
+            {
+                continue;
+            }
+            int pid = std::stoi(entry->d_name);
+            if (pid != 0)
+            {
+                // Build the path to the "comm" file for this process
+                std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
+
+                // Open the "comm" file for reading
+                std::ifstream commFile(commPath);
+                if (commFile)
                 {
                     std::string processName;
                     std::getline(commFile, processName);
@@ -472,10 +591,16 @@ void HealthMetricCollection::createProcessMetric(const MetricIntf::paths_t& bmcP
                     {
                         if (config.binaryName == processName)
                         {
-                            // Create a new health metric object for this process
-                            debug("Creating health metric for process {NAME}", "NAME", config.name);
-                            metrics[config.name] = std::make_unique<MetricIntf::HealthMetric>(
-                                    bus, type, config, bmcPaths, pid);
+#ifdef ENABLE_DEBUG
+                            // Create a new health metric object for this
+                            // process
+                            debug("Creating health metric for process {NAME}",
+                                  "NAME", config.name);
+#endif
+                            metrics[config.name] =
+                                std::make_unique<MetricIntf::HealthMetric>(
+                                    bus, type, config, bmcPaths);
+                            metrics[config.name]->setPid(pid);
                         }
                     }
                 }

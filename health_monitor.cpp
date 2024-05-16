@@ -16,8 +16,10 @@ using namespace phosphor::health::utils;
 
 auto HealthMonitor::startup() -> sdbusplus::async::task<>
 {
-    info("Waiting for system to boot complete for {DELAY} seconds", "DELAY", phosphor::health::metric::config::getBootDelay());
-    sleep(phosphor::health::metric::config::getBootDelay());
+    info("Waiting for system to boot complete for {DELAY} seconds", "DELAY",
+         BOOT_DELAY);
+    std::chrono::seconds sleep_duration(BOOT_DELAY);
+    co_await sdbusplus::async::sleep_for(ctx, sleep_duration);
 
     info("Creating Health Monitor with config size {SIZE}", "SIZE",
          configs.size());
@@ -49,6 +51,15 @@ auto HealthMonitor::run() -> sdbusplus::async::task<>
             debug("Reading Health Metric Collection for {TYPE}", "TYPE", type);
             collection->read();
         }
+        // Checking for Pending Metrics
+        for (auto& [type, collection] : collections)
+        {
+            if (collection->getPendingConfigsCount() > 0)
+            {
+                info("Pending Metrics found for {TYPE}", "TYPE", type);
+                collection->createPendingConfigs();
+            }
+        }
         co_await sdbusplus::async::sleep_for(
             ctx, std::chrono::seconds(MONITOR_COLLECTION_INTERVAL));
     }
@@ -67,10 +78,13 @@ int main()
 
     info("Creating health monitor");
     using namespace phosphor::health::metric::config;
-    parseCommonConfig();
-    std::function<HealthMetric::map_t()> healthConfigFunc = getHealthMetricConfigs;
+    // parseCommonConfig();
+    std::function<HealthMetric::map_t()> healthConfigFunc =
+        getHealthMetricConfigs;
     HealthMonitor healthMonitor(ctx, healthConfigFunc);
-    std::function<HealthMetric::map_t()> srvcConfigFunction = getServiceMetricConfigs;
+
+    std::function<HealthMetric::map_t()> srvcConfigFunction =
+        getServiceMetricConfigs;
     HealthMonitor serviceMonitor(ctx, srvcConfigFunction);
 
     ctx.request_name(healthMonitorServiceName);

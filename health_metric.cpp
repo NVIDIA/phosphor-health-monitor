@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "health_metric.hpp"
 
 #include <phosphor-logging/lg2.hpp>
@@ -55,22 +57,22 @@ auto HealthMetric::getPath(MType type, std::string name, SubType subType)
         case SubType::cpuProcesses:
         {
             static constexpr auto nameDelimiter = "_";
-            auto processName = name.substr(
-                name.find_last_of(nameDelimiter) + 1, name.length());
+            auto processName = name.substr(name.find_last_of(nameDelimiter) + 1,
+                                           name.length());
             std::ranges::for_each(processName,
-                                    [](auto& c) { c = std::tolower(c); });
+                                  [](auto& c) { c = std::tolower(c); });
             return std::string(BmcPath) + "/" + "cpu/processes" + "/" +
-                    processName;
+                   processName;
         }
         case SubType::memoryProcesses:
         {
             static constexpr auto nameDelimiter = "_";
-            auto processName = name.substr(
-                name.find_last_of(nameDelimiter) + 1, name.length());
+            auto processName = name.substr(name.find_last_of(nameDelimiter) + 1,
+                                           name.length());
             std::ranges::for_each(processName,
-                                    [](auto& c) { c = std::tolower(c); });
+                                  [](auto& c) { c = std::tolower(c); });
             return std::string(BmcPath) + "/" + "memory/processes" + "/" +
-                    processName;
+                   processName;
         }
         case SubType::NA:
         {
@@ -195,31 +197,39 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
                     error(
                         "ASSERT: Health Metric {METRIC} crossed {TYPE} upper threshold",
                         "METRIC", config.name, "TYPE", type);
-                    //if (checkCriticalLogRateLimitWindow())
+                    if ((type == Threshold::Type::Critical &&
+                         checkCriticalLogRateLimitWindow()) ||
+                        (type == Threshold::Type::Warning &&
+                         checkWarningLogRateLimitWindow()))
                     {
-                        // createThresholdLogEntry("critical", config.name, value,
-                        //                     config.criticalHigh);
-                        if(this->type == phosphor::health::metric::Type::processCPU)
+                        std::string path = "";
+                        phosphor::health::utils::createThresholdLogEntry(
+                            bus, type, config.name, value.current,
+                            thresholdValue);
+                        if (this->type ==
+                            phosphor::health::metric::Type::processCPU)
                         {
-                            startUnit(bus, tConfig.target,
-                                    "CPU", config.binaryName, value.current);
+                            startUnit(bus, tConfig.target, "CPU", path,
+                                      config.binaryName, value.current);
                         }
-                        else if(this->type == phosphor::health::metric::Type::processMemory)
+                        else if (this->type ==
+                                 phosphor::health::metric::Type::processMemory)
                         {
-                            startUnit(bus, tConfig.target,
-                                    "Memory", config.binaryName, value.current);
+                            startUnit(bus, tConfig.target, "Memory", path,
+                                      config.binaryName, value.current);
                         }
                         else
                         {
-                            std::string path;
-                            if(this->type == phosphor::health::metric::Type::storage)
+                            if (this->type ==
+                                phosphor::health::metric::Type::storage)
                             {
                                 path = config.path;
-                                startUnit(bus, tConfig.target,
-                                        "Storage", config.binaryName, value.current);
+                                startUnit(bus, tConfig.target, "Storage", path);
                             }
-                            startUnit(bus, tConfig.target,
-                                    config.name, path);
+                            else
+                            {
+                                startUnit(bus, tConfig.target, config.name);
+                            }
                         }
                     }
                 }
@@ -290,9 +300,10 @@ void HealthMetric::update(MValue value)
     double average = (std::accumulate(history.begin(), history.end(), 0.0)) /
                      history.size();
     value.current = average;
-
-    debug("Health Metric: {METRIC} average value: {VALUE}", "METRIC",
+#ifdef ENABLE_info
+    info("Health Metric: {METRIC} average value: {VALUE}", "METRIC",
          config.name, "VALUE", value.current);
+#endif
     checkThresholds(value);
 }
 
@@ -316,4 +327,47 @@ void HealthMetric::create(const paths_t& bmcPaths)
     AssociationIntf::associations(associations);
 }
 
+bool HealthMetric::checkCriticalLogRateLimitWindow()
+{
+    if (!std::chrono::duration_cast<std::chrono::seconds>(
+             lastCriticalLogLoggedTime.time_since_epoch())
+             .count())
+    {
+        // Update the last Critical log loggedTime
+        lastCriticalLogLoggedTime = std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    std::chrono::duration<double> diff =
+        std::chrono::high_resolution_clock::now() - lastCriticalLogLoggedTime;
+    // using namespace phosphor::health::metric::config;
+    if (diff.count() > LOG_RATE_LIMIT)
+    {
+        // Update the last Critical log loggedTime
+        lastCriticalLogLoggedTime = std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    return false;
+}
+
+bool HealthMetric::checkWarningLogRateLimitWindow()
+{
+    if (!std::chrono::duration_cast<std::chrono::seconds>(
+             lastWarningLogLoggedTime.time_since_epoch())
+             .count())
+    {
+        // Update the last warning log loggedTime
+        lastWarningLogLoggedTime = std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    std::chrono::duration<double> diff =
+        std::chrono::high_resolution_clock::now() - lastWarningLogLoggedTime;
+    // using namespace phosphor::health::metric::config;
+    if (diff.count() > LOG_RATE_LIMIT)
+    {
+        // Update the last warning log loggedTime
+        lastWarningLogLoggedTime = std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    return false;
+}
 } // namespace phosphor::health::metric

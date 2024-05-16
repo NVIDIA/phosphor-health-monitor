@@ -16,13 +16,30 @@ class HealthMetricCollection
                            const configs_t& configs,
                            MetricIntf::paths_t& bmcPaths) :
         bus(bus),
-        type(type), configs(configs)
+        type(type), configs(configs), bmcPaths(bmcPaths)
     {
         create(bmcPaths);
     }
 
     /** @brief Read the health metric collection from the system */
     void read();
+    /** @brief Get the number of pending metrics */
+    int getPendingConfigsCount()
+    {
+        return pendingConfigs.size();
+    }
+    /** @brief Add the pending metric */
+    void addPendingConfig(std::string& configName)
+    {
+        pendingConfigs.insert(configName);
+    }
+    /** @brief Remove the pending metric */
+    void removePendingConfig(std::string& configName)
+    {
+        pendingConfigs.erase(configName);
+    }
+    /** @brief Create the pending metrics */
+    void createPendingConfigs();
 
   private:
     using map_t = std::unordered_map<std::string,
@@ -30,7 +47,8 @@ class HealthMetricCollection
     using time_map_t = std::unordered_map<MetricIntf::SubType, uint64_t>;
     /** @brief Create a new health metric collection object */
     void create(const MetricIntf::paths_t& bmcPaths);
-    /** @brief Create the health metric collection object for process cpu/memory type */
+    /** @brief Create the health metric collection object for process cpu/memory
+     * type */
     void createProcessMetric(const MetricIntf::paths_t& bmcPaths);
     /** @brief Read the CPU */
     auto readCPU() -> bool;
@@ -58,9 +76,12 @@ class HealthMetricCollection
     time_map_t preTotalTime;
     /** total number cpus*/
     static int cpus;
-
     /** @brief clock ticks per second */
     static int hertz;
+    /** @brief data structure for storing pending Metrics*/
+    std::set<std::string> pendingConfigs;
+
+    MetricIntf::paths_t bmcPaths;
 };
 
 } // namespace phosphor::health::metric::collection

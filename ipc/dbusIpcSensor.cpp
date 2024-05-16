@@ -295,10 +295,10 @@ void DBusIpcSensor::logAndExecuteAction(const std::string connName,
     if (thresholdType == "critical")
     {
         lg2::info("Creating threshold log entry for critical");
-        createThresholdLogEntry("critical", unitName, paramConfig.key,
-                                value, paramConfig.criticalHigh);
+        createThresholdLogEntry("critical", unitName, paramConfig.key, value,
+                                paramConfig.criticalHigh);
         startUnit(paramConfig.criticalTgt, unitName,
-                            "CriticalThresholdLimitCrossed");
+                  "CriticalThresholdLimitCrossed");
         if (logStatusMap.find(connKey) != logStatusMap.end())
         {
             if (!logStatusMap[connKey].second)
@@ -312,8 +312,8 @@ void DBusIpcSensor::logAndExecuteAction(const std::string connName,
     else if (thresholdType == "warning")
     {
         lg2::info("Creating threshold log entry for warning");
-        createThresholdLogEntry("warning", unitName, paramConfig.key,
-                                value, paramConfig.warningHigh);
+        createThresholdLogEntry("warning", unitName, paramConfig.key, value,
+                                paramConfig.warningHigh);
         if (logStatusMap.find(connKey) != logStatusMap.end())
         {
             if (!logStatusMap[connKey].first)

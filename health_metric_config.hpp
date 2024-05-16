@@ -104,14 +104,6 @@ auto getHealthMetricConfigs() -> HealthMetric::map_t;
 
 /** @brief Get the Service metric configs. */
 auto getServiceMetricConfigs() -> HealthMetric::map_t;
-/** @brief Get the common configs. */
-auto parseCommonConfig() -> void;
-
-/* @brief Get the log rate limit */
-auto getLogRateLimit() -> uint16_t;
-
-/* @brief Get the boot delay in seconds */
-auto getBootDelay() -> uint16_t;
 
 } // namespace config
 } // namespace phosphor::health::metric

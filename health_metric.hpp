@@ -45,10 +45,10 @@ class HealthMetric : public MetricIntf
     virtual ~HealthMetric() = default;
 
     HealthMetric(sdbusplus::bus_t& bus, MType type,
-                 const config::HealthMetric& config, const paths_t& bmcPaths, int pid = 0) :
+                 const config::HealthMetric& config, const paths_t& bmcPaths) :
         MetricIntf(bus, getPath(type, config.name, config.subType).c_str(),
                    action::defer_emit),
-        bus(bus), type(type), config(config), pid(pid)
+        bus(bus), type(type), config(config)
     {
         create(bmcPaths);
         this->emit_object_added();
@@ -56,8 +56,17 @@ class HealthMetric : public MetricIntf
 
     /** @brief Update the health metric with the given value */
     void update(MValue value);
+    /** @brief Set the process ID for the metric */
+    void setPid(int pid)
+    {
+        this->pid = pid;
+    }
     /** @brief Get the process ID for the metric */
-    int getPid() { return pid; }
+    int getPid()
+    {
+        return pid;
+    }
+
   private:
     /** @brief Create a new health metric object */
     void create(const paths_t& bmcPaths);
@@ -72,6 +81,16 @@ class HealthMetric : public MetricIntf
     void checkThresholds(MValue value);
     /** @brief Get the object path for the given type, name and subtype */
     auto getPath(MType type, std::string name, SubType subType) -> std::string;
+    /** @brief Check if the metric is in critical state */
+    auto checkCriticalLogRateLimitWindow() -> bool;
+    /** @brief Check if the metric is in warning state */
+    auto checkWarningLogRateLimitWindow() -> bool;
+    /** @brief last logged time for critical log */
+    std::chrono::time_point<std::chrono::high_resolution_clock>
+        lastCriticalLogLoggedTime;
+    /** @brief last logged time for warning log */
+    std::chrono::time_point<std::chrono::high_resolution_clock>
+        lastWarningLogLoggedTime;
     /** @brief D-Bus bus connection */
     sdbusplus::bus_t& bus;
     /** @brief Metric type */
@@ -79,7 +98,7 @@ class HealthMetric : public MetricIntf
     /** @brief Metric configuration */
     const config::HealthMetric config;
     /** @brief Window for metric history */
-    std::deque<double> history = {};
+    std::deque<double> history;
     /** @brief Last notified value for the metric change */
     double lastNotifiedValue = 0;
     /** @brief Process ID for the metric */
