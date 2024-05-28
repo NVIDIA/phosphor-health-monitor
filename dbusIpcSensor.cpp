@@ -179,8 +179,8 @@ void DBusIpcSensor::processdata()
                                     -> double {
                                 // Visit the variant to handle each possible
                                 // type
-                                return acc + std::visit(
-                                                 [](auto&& arg) -> double {
+                                return acc +
+                                       std::visit([](auto&& arg) -> double {
                                     using T = std::decay_t<decltype(arg)>;
                                     if constexpr (std::is_same_v<T, long int>)
                                     {
@@ -194,8 +194,7 @@ void DBusIpcSensor::processdata()
                                         // type, add zero
                                         return 0;
                                     }
-                                },
-                                                 val);
+                                }, val);
                             });
                             avgValue = avgValue / ipcConfig.windowSize;
                             if (avgValue < it->warningHigh)
@@ -295,10 +294,10 @@ void DBusIpcSensor::logAndExecuteAction(const std::string connName,
     if (thresholdType == "critical")
     {
         lg2::info("Creating threshold log entry for critical");
-        createThresholdLogEntry("critical", unitName, paramConfig.key,
-                                value, paramConfig.criticalHigh);
+        createThresholdLogEntry("critical", unitName, paramConfig.key, value,
+                                paramConfig.criticalHigh);
         startUnit(paramConfig.criticalTgt, unitName,
-                            "CriticalThresholdLimitCrossed");
+                  "CriticalThresholdLimitCrossed");
         if (logStatusMap.find(connKey) != logStatusMap.end())
         {
             if (!logStatusMap[connKey].second)
@@ -312,8 +311,8 @@ void DBusIpcSensor::logAndExecuteAction(const std::string connName,
     else if (thresholdType == "warning")
     {
         lg2::info("Creating threshold log entry for warning");
-        createThresholdLogEntry("warning", unitName, paramConfig.key,
-                                value, paramConfig.warningHigh);
+        createThresholdLogEntry("warning", unitName, paramConfig.key, value,
+                                paramConfig.warningHigh);
         if (logStatusMap.find(connKey) != logStatusMap.end())
         {
             if (!logStatusMap[connKey].first)

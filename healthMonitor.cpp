@@ -2,6 +2,7 @@
 
 #include "healthMonitor.hpp"
 
+#include <dirent.h>
 #include <unistd.h>
 
 #include <boost/asio/steady_timer.hpp>
@@ -12,16 +13,15 @@
 #include <sdbusplus/server/manager.hpp>
 #include <sdeventplus/event.hpp>
 
+#include <any>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <sstream>
 #include <string>
-#include <cstring>
-#include <dirent.h>
-#include <map>
-#include <any>
 extern "C"
 {
 #include <sys/statvfs.h>
@@ -121,9 +121,12 @@ enum CPUUtilizationType
     TOTAL
 };
 
-bool containsOnlyDigits(const std::string& str) {
-    for (char c : str) {
-        if (!isdigit(c)) {
+bool containsOnlyDigits(const std::string& str)
+{
+    for (char c : str)
+    {
+        if (!isdigit(c))
+        {
             return false;
         }
     }
@@ -136,7 +139,7 @@ double readCPUUtilization(enum CPUUtilizationType type)
     std::ifstream fileStat(proc_stat);
     if (!fileStat.is_open())
     {
-        const std::string error = "Failed to open /proc/stat" ;
+        const std::string error = "Failed to open /proc/stat";
         throw std::runtime_error(error);
     }
 
@@ -202,7 +205,7 @@ double readCPUUtilization(enum CPUUtilizationType type)
     /* Store current idle and active time for next calculation */
     preActiveTime[type] = activeTime;
     preTotalTime[type] = totalTime;
-    if(totalTimeDiff == 0)
+    if (totalTimeDiff == 0)
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
@@ -234,7 +237,7 @@ std::any readMemoryUtilization([[maybe_unused]] std::vector<std::any> args)
     /* Unused var: path */
     std::ignore = args;
     std::ifstream meminfo("/proc/meminfo");
-    if(!meminfo.is_open())
+    if (!meminfo.is_open())
     {
         const std::string error = "Failed to open. /proc/meminfo";
         throw std::runtime_error(error);
@@ -280,13 +283,13 @@ std::any readMemoryUtilization([[maybe_unused]] std::vector<std::any> args)
 
 std::any readStorageUtilization([[maybe_unused]] std::vector<std::any> args)
 {
-    if(args.size() != 1 || args[0].type() != typeid(std::string))
+    if (args.size() != 1 || args[0].type() != typeid(std::string))
     {
         throw std::invalid_argument("Invalid argument");
     }
-    
+
     std::string path = std::any_cast<std::string>(args[0]);
-    struct statvfs buffer 
+    struct statvfs buffer
     {};
     int ret = statvfs(path.c_str(), &buffer);
     double total = 0;
@@ -305,7 +308,7 @@ std::any readStorageUtilization([[maybe_unused]] std::vector<std::any> args)
     total = buffer.f_blocks * (buffer.f_frsize / 1024);
     available = buffer.f_bfree * (buffer.f_frsize / 1024);
     used = total - available;
-    if(total == 0)
+    if (total == 0)
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
@@ -324,7 +327,7 @@ std::any readStorageUtilization([[maybe_unused]] std::vector<std::any> args)
 
 std::any readInodeUtilization([[maybe_unused]] std::vector<std::any> args)
 {
-    if(args.size() != 1 || args[0].type() != typeid(std::string))
+    if (args.size() != 1 || args[0].type() != typeid(std::string))
     {
         throw std::invalid_argument("Invalid argument");
     }
@@ -349,7 +352,7 @@ std::any readInodeUtilization([[maybe_unused]] std::vector<std::any> args)
     totalInodes = buffer.f_files;
     availableInodes = buffer.f_ffree;
     used = totalInodes - availableInodes;
-    if(totalInodes == 0)
+    if (totalInodes == 0)
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
@@ -370,7 +373,7 @@ int getSystemClockFrequency()
 {
     // get the number of clock ticks per second
     int hertz = sysconf(_SC_CLK_TCK);
-    if(hertz <= 0)
+    if (hertz <= 0)
     {
         hertz = 100; // assuming normal linux system
     }
@@ -382,7 +385,7 @@ int getNumberofCPU()
 {
     // get the number of processors in system
     int cpus = sysconf(_SC_NPROCESSORS_ONLN);
-    if(cpus <= 0)
+    if (cpus <= 0)
     {
         cpus = 1;
     }
@@ -394,7 +397,7 @@ double readProcessCPUUtilization(int pid)
 {
     std::string statFilePath = "/proc/" + std::to_string(pid) + "/stat";
     std::ifstream statFile(statFilePath);
-    if (!statFile.is_open()) 
+    if (!statFile.is_open())
     {
         const std::string error = "Failed to open. " + statFilePath;
         throw std::runtime_error(error);
@@ -423,8 +426,8 @@ double readProcessCPUUtilization(int pid)
 
     // Calculate the total time spent by the process in user mode and kernel
     // mode
-    int activeTime = utime + stime;// + cutime + cstime;
-    if(DEBUG)
+    int activeTime = utime + stime; // + cutime + cstime;
+    if (DEBUG)
     {
         info("activeTime is {ACTIVE_TIME}", "ACTIVE_TIME", activeTime);
     }
@@ -433,53 +436,56 @@ double readProcessCPUUtilization(int pid)
     struct timezone timez;
     float elapsedTime;
 
-    static std::unordered_map<int, std::pair<__time_t, __suseconds_t> > preElapsedTime;
+    static std::unordered_map<int, std::pair<__time_t, __suseconds_t>>
+        preElapsedTime;
     static std::unordered_map<int, int> preActiveTime;
     gettimeofday(&t, &timez);
 
-    if(preElapsedTime.find(pid) == preElapsedTime.end() ||
-                preActiveTime.find(pid) == preActiveTime.end())
+    if (preElapsedTime.find(pid) == preElapsedTime.end() ||
+        preActiveTime.find(pid) == preActiveTime.end())
     {
         preElapsedTime[pid] = std::make_pair(0, 0);
         preActiveTime[pid] = 0;
     }
 
-    elapsedTime = (t.tv_sec - preElapsedTime[pid].first)
-	+ (float) (t.tv_usec - preElapsedTime[pid].second) / 1000000.0;
+    elapsedTime = (t.tv_sec - preElapsedTime[pid].first) +
+                  (float)(t.tv_usec - preElapsedTime[pid].second) / 1000000.0;
 
     preElapsedTime[pid] = std::make_pair(t.tv_sec, t.tv_usec);
-    if(DEBUG)
+    if (DEBUG)
     {
         info("elapsedTime is {ELAPSED_TIME}", "ELAPSED_TIME", elapsedTime);
     }
 
     int activeTimeDiff = activeTime - preActiveTime[pid];
-    if(DEBUG)
+    if (DEBUG)
     {
-        info("activeTimeDiff is {ACTIVE_TIME_DIFF}", "ACTIVE_TIME_DIFF", activeTimeDiff);
+        info("activeTimeDiff is {ACTIVE_TIME_DIFF}", "ACTIVE_TIME_DIFF",
+             activeTimeDiff);
     }
     preActiveTime[pid] = activeTime;
 
-    if(DEBUG)
+    if (DEBUG)
     {
         info("hertz is {HERTZ}", "HERTZ", hertz);
         info("cpus is {CPUS}", "CPUS", cpus);
     }
 
-    if(elapsedTime <= 0 || hertz <= 0 || cpus <= 0)
+    if (elapsedTime <= 0 || hertz <= 0 || cpus <= 0)
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
 
     // Calculate the CPU usage percentage
-    float cpuUsagePercentage =  ( activeTimeDiff/cpus ) * ( 100/hertz ) / elapsedTime;
-    if(DEBUG)
+    float cpuUsagePercentage = (activeTimeDiff / cpus) * (100 / hertz) /
+                               elapsedTime;
+    if (DEBUG)
     {
         info("CPU percentage for process {PID} is {CPU_PERCENTAGE}", "PID", pid,
-            "CPU_PERCENTAGE", cpuUsagePercentage);
+             "CPU_PERCENTAGE", cpuUsagePercentage);
     }
 
-    if(cpuUsagePercentage > 100)
+    if (cpuUsagePercentage > 100)
     {
         cpuUsagePercentage = 100;
     }
@@ -488,23 +494,24 @@ double readProcessCPUUtilization(int pid)
 
 std::any readServiceCpuUtilization([[maybe_unused]] std::vector<std::any> args)
 {
-    if(args.size() != 1 || args[0].type() != typeid(int))
+    if (args.size() != 1 || args[0].type() != typeid(int))
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
-    
+
     int pid = std::any_cast<int>(args[0]);
 
     return readProcessCPUUtilization(pid);
 }
 
 // Function to calculate memory usage in kilobytes
-long long calculateMemoryUsageKB(const int& pid) {
+long long calculateMemoryUsageKB(const int& pid)
+{
     // Build the path to the statm file for the specified process ID
     std::string statmPath = "/proc/" + std::to_string(pid) + "/statm";
     std::ifstream statmFile(statmPath);
     // Open the statm file for reading
-    if (!statmFile.is_open()) 
+    if (!statmFile.is_open())
     {
         const std::string error = "Failed to open. " + statmPath;
         throw std::runtime_error(error);
@@ -516,20 +523,21 @@ long long calculateMemoryUsageKB(const int& pid) {
     // Calculate memory usage in kilobytes (KB)
     long long memoryUsageKB = resident * sysconf(_SC_PAGESIZE) / 1024;
     statmFile.close();
-    if(DEBUG)
+    if (DEBUG)
     {
         info("Memory usage for process {PID} is {MEMORY_USAGE}", "PID", pid,
-            "MEMORY_USAGE", memoryUsageKB);
+             "MEMORY_USAGE", memoryUsageKB);
     }
     return memoryUsageKB;
 }
 
 // Function to calculate the total memory on the system in kilobytes
-long long calculateTotalMemoryKB() {
+long long calculateTotalMemoryKB()
+{
     // Build the path to the meminfo file
     std::string meminfoPath = "/proc/meminfo";
     std::ifstream meminfoFile(meminfoPath);
-    
+
     // Open the meminfo file for reading
     if (!meminfoFile.is_open())
     {
@@ -540,8 +548,10 @@ long long calculateTotalMemoryKB() {
     // Read the MemTotal field from meminfo file
     std::string line;
     long long totalMemoryKB = -1;
-    while (std::getline(meminfoFile, line)) {
-        if (line.find("MemTotal:") == 0) {
+    while (std::getline(meminfoFile, line))
+    {
+        if (line.find("MemTotal:") == 0)
+        {
             std::istringstream iss(line);
             std::string field;
             iss >> field >> totalMemoryKB;
@@ -549,16 +559,18 @@ long long calculateTotalMemoryKB() {
         }
     }
     meminfoFile.close();
-    if(DEBUG)
+    if (DEBUG)
     {
-        info("Total memory on the system is {TOTAL_MEMORY}", "TOTAL_MEMORY", totalMemoryKB);
+        info("Total memory on the system is {TOTAL_MEMORY}", "TOTAL_MEMORY",
+             totalMemoryKB);
     }
     return totalMemoryKB;
 }
 
-std::any readServiceMemoryUtilization([[maybe_unused]] [[maybe_unused]] std::vector<std::any> args)
+std::any readServiceMemoryUtilization(
+    [[maybe_unused]] [[maybe_unused]] std::vector<std::any> args)
 {
-    if(args.size() != 1 || args[0].type() != typeid(int))
+    if (args.size() != 1 || args[0].type() != typeid(int))
     {
         throw std::invalid_argument("Invalid argument");
     }
@@ -568,13 +580,14 @@ std::any readServiceMemoryUtilization([[maybe_unused]] [[maybe_unused]] std::vec
     long long memoryUsageKB = calculateMemoryUsageKB(pid);
     long long totalMemoryKB = calculateTotalMemoryKB();
 
-    if (memoryUsageKB != -1 && totalMemoryKB != -1 && totalMemoryKB > 0) 
+    if (memoryUsageKB != -1 && totalMemoryKB != -1 && totalMemoryKB > 0)
     {
-        double memoryUsagePercentage = static_cast<double>(memoryUsageKB) / totalMemoryKB * 100.0;
-        if(DEBUG)
+        double memoryUsagePercentage = static_cast<double>(memoryUsageKB) /
+                                       totalMemoryKB * 100.0;
+        if (DEBUG)
         {
-            info("Memory percentage for process {PID} is {MEMORY_PERCENTAGE}", "PID", pid,
-                "MEMORY_PERCENTAGE", memoryUsagePercentage);
+            info("Memory percentage for process {PID} is {MEMORY_PERCENTAGE}",
+                 "PID", pid, "MEMORY_PERCENTAGE", memoryUsagePercentage);
         }
         return memoryUsagePercentage;
     }
@@ -599,15 +612,15 @@ constexpr auto serviceMemoryOther = "Other_Memory_";
  *  - CPU_User populates ProcessorStatistics.UserPercent
  */
 using GenericFunction = std::function<std::any(std::vector<std::any>)>;
-std::map<std::string, GenericFunction>
-    readSensors = {{"CPU", readCPUUtilizationTotal},
-                   {"CPU_Kernel", readCPUUtilizationKernel},
-                   {"CPU_User", readCPUUtilizationUser},
-                   {"Memory", readMemoryUtilization},
-                   {storage, readStorageUtilization},
-                   {inode, readInodeUtilization},
-                   {serviceCPU, readServiceCpuUtilization},
-                   {serviceMemory, readServiceMemoryUtilization}};
+std::map<std::string, GenericFunction> readSensors = {
+    {"CPU", readCPUUtilizationTotal},
+    {"CPU_Kernel", readCPUUtilizationKernel},
+    {"CPU_User", readCPUUtilizationUser},
+    {"Memory", readMemoryUtilization},
+    {storage, readStorageUtilization},
+    {inode, readInodeUtilization},
+    {serviceCPU, readServiceCpuUtilization},
+    {serviceMemory, readServiceMemoryUtilization}};
 
 void HealthSensor::setSensorThreshold(double criticalHigh, double warningHigh)
 {
@@ -639,7 +652,7 @@ void HealthSensor::initHealthSensor(
     {
         it = readSensors.find(inode);
     }
-    else if(sensorConfig.name.rfind(serviceCPU, 0) == 0)
+    else if (sensorConfig.name.rfind(serviceCPU, 0) == 0)
     {
         it = readSensors.find(serviceCPU);
     }
@@ -669,7 +682,7 @@ void HealthSensor::initHealthSensor(
             value = std::any_cast<double>(result);
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         error("Exception occurred while reading sensor {SENSOR}: {ERROR}",
               "SENSOR", sensorConfig.name, "ERROR", e);
@@ -680,8 +693,7 @@ void HealthSensor::initHealthSensor(
 
     if (value < 0)
     {
-        error(": {SENSOR}", "SENSOR",
-              sensorConfig.name);
+        error(": {SENSOR}", "SENSOR", sensorConfig.name);
         return;
     }
 
@@ -722,7 +734,8 @@ void HealthSensor::createRFLogEntry(const std::string& messageId,
         {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
          std::pair<std::string, std::string>(
              {"REDFISH_MESSAGE_ARGS", messageArgs}),
-              std::pair<std::string, std::string>({"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
+         std::pair<std::string, std::string>(
+             {"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
     try
     {
         // A strict timeout for logging service to fail early and ensure
@@ -738,18 +751,16 @@ void HealthSensor::createRFLogEntry(const std::string& messageId,
 }
 
 void HealthSensor::createThresholdLogEntry(const std::string& threshold,
-                                          const std::string& sensorName,
-                                          double value,
-                                          const double configThresholdValue)
+                                           const std::string& sensorName,
+                                           double value,
+                                           const double configThresholdValue)
 {
-
     std::string messageId = "OpenBMC.0.4.";
     std::string messageArgs{};
     std::string messageLevel{};
     std::string resolution{};
     if (threshold == "warning")
     {
-
         messageId += "SensorThresholdWarningHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
@@ -763,7 +774,7 @@ void HealthSensor::createThresholdLogEntry(const std::string& threshold,
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-        resolution ="None";
+        resolution = "None";
         createRFLogEntry(messageId, messageArgs, messageLevel, resolution);
     }
     else
@@ -776,22 +787,19 @@ void HealthSensor::createThresholdLogEntry(const std::string& threshold,
 bool HealthSensor::checkCriticalLogRateLimitWindow()
 {
     if (!std::chrono::duration_cast<std::chrono::seconds>(
-                lastCriticalLogLoggedTime.time_since_epoch())
-            .count())
+             lastCriticalLogLoggedTime.time_since_epoch())
+             .count())
     {
         // Update the last Critical log loggedTime
-        lastCriticalLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastCriticalLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     std::chrono::duration<double> diff =
-        std::chrono::high_resolution_clock::now() -
-        lastCriticalLogLoggedTime;
+        std::chrono::high_resolution_clock::now() - lastCriticalLogLoggedTime;
     if (diff.count() > healthMon->getlogRateLimit())
     {
         // Update the last Critical log loggedTime
-        lastCriticalLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastCriticalLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     return false;
@@ -800,23 +808,20 @@ bool HealthSensor::checkCriticalLogRateLimitWindow()
 bool HealthSensor::checkWarningLogRateLimitWindow()
 {
     if (!std::chrono::duration_cast<std::chrono::seconds>(
-                lastWarningLogLoggedTime.time_since_epoch())
-            .count())
+             lastWarningLogLoggedTime.time_since_epoch())
+             .count())
     {
         // Update the last warning log loggedTime
-        lastWarningLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastWarningLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     std::chrono::duration<double> diff =
-        std::chrono::high_resolution_clock::now() -
-        lastWarningLogLoggedTime;
+        std::chrono::high_resolution_clock::now() - lastWarningLogLoggedTime;
 
     if (diff.count() > healthMon->getlogRateLimit())
     {
         // Update the last warning log loggedTime
-        lastWarningLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastWarningLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     return false;
@@ -825,23 +830,20 @@ bool HealthSensor::checkWarningLogRateLimitWindow()
 bool HealthSensor::checkPeakLogRateLimitWindow()
 {
     if (!std::chrono::duration_cast<std::chrono::seconds>(
-                lastPeakLogLoggedTime.time_since_epoch())
-            .count())
+             lastPeakLogLoggedTime.time_since_epoch())
+             .count())
     {
         // Update the last Peak log loggedTime
-        lastPeakLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastPeakLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     std::chrono::duration<double> diff =
-        std::chrono::high_resolution_clock::now() -
-        lastPeakLogLoggedTime;
+        std::chrono::high_resolution_clock::now() - lastPeakLogLoggedTime;
 
     if (diff.count() > healthMon->getlogRateLimit())
     {
         // Update the last Peak log loggedTime
-        lastPeakLogLoggedTime =
-            std::chrono::high_resolution_clock::now();
+        lastPeakLogLoggedTime = std::chrono::high_resolution_clock::now();
         return true;
     }
     return false;
@@ -863,19 +865,18 @@ void HealthSensor::checkSensorThreshold(const double value)
                     "SENSOR", sensorConfig.name);
                 if (checkCriticalLogRateLimitWindow())
                 {
-                    createThresholdLogEntry("critical", sensorConfig.name, value,
-                                           sensorConfig.criticalHigh);
+                    createThresholdLogEntry("critical", sensorConfig.name,
+                                            value, sensorConfig.criticalHigh);
 
                     if ((sensorConfig.name.rfind(serviceCPU, 0) == 0))
                     {
-                         startUnit(sensorConfig.criticalTgt,
-                                "CPU", sensorConfig.binaryName, value);
-
+                        startUnit(sensorConfig.criticalTgt, "CPU",
+                                  sensorConfig.binaryName, value);
                     }
-                    else if(sensorConfig.name.rfind(serviceMemory, 0) == 0)
+                    else if (sensorConfig.name.rfind(serviceMemory, 0) == 0)
                     {
-                         startUnit(sensorConfig.criticalTgt,
-                                "Memory", sensorConfig.binaryName, value);
+                        startUnit(sensorConfig.criticalTgt, "Memory",
+                                  sensorConfig.binaryName, value);
                     }
                     else
                     {
@@ -883,8 +884,8 @@ void HealthSensor::checkSensorThreshold(const double value)
                         {
                             path = sensorConfig.path;
                         }
-                        startUnit(sensorConfig.criticalTgt,
-                                sensorConfig.name, path);
+                        startUnit(sensorConfig.criticalTgt, sensorConfig.name,
+                                  path);
                     }
                 }
             }
@@ -915,17 +916,16 @@ void HealthSensor::checkSensorThreshold(const double value)
                 if (checkWarningLogRateLimitWindow())
                 {
                     createThresholdLogEntry("warning", sensorConfig.name, value,
-                                           sensorConfig.warningHigh);
+                                            sensorConfig.warningHigh);
                     if ((sensorConfig.name.rfind(serviceCPU, 0) == 0))
                     {
-                         startUnit(sensorConfig.warningTgt,
-                                "CPU", sensorConfig.binaryName, value);
-
+                        startUnit(sensorConfig.warningTgt, "CPU",
+                                  sensorConfig.binaryName, value);
                     }
-                    else if(sensorConfig.name.rfind(serviceMemory, 0) == 0)
+                    else if (sensorConfig.name.rfind(serviceMemory, 0) == 0)
                     {
-                         startUnit(sensorConfig.warningTgt,
-                                "Memory", sensorConfig.binaryName, value);
+                        startUnit(sensorConfig.warningTgt, "Memory",
+                                  sensorConfig.binaryName, value);
                     }
                     else
                     {
@@ -933,8 +933,8 @@ void HealthSensor::checkSensorThreshold(const double value)
                         {
                             path = sensorConfig.path;
                         }
-                        startUnit(sensorConfig.warningTgt,
-                                sensorConfig.name, path);
+                        startUnit(sensorConfig.warningTgt, sensorConfig.name,
+                                  path);
                     }
                 }
             }
@@ -959,9 +959,9 @@ void HealthSensor::checkServiceCpuPeak(const double value)
         return;
     }
 
-    if(value > sensorConfig.criticalHigh)
+    if (value > sensorConfig.criticalHigh)
     {
-        if(checkPeakLogRateLimitWindow())
+        if (checkPeakLogRateLimitWindow())
         {
             info(
                 "ASSERT: sensor {SENSOR} peak is above the upper threshold critical high",
@@ -971,11 +971,11 @@ void HealthSensor::checkServiceCpuPeak(const double value)
             std::string messageLevel{};
             std::string resolution{};
             messageId += "BMCServicePeakResourceInfo";
-            messageArgs = sensorConfig.name + "," + std::to_string(value) + "," +
-                      std::to_string(sensorConfig.criticalHigh);
+            messageArgs = sensorConfig.name + "," + std::to_string(value) +
+                          "," + std::to_string(sensorConfig.criticalHigh);
             messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-            resolution ="None";
-            createRFLogEntry(messageId, messageArgs, messageLevel, resolution);            
+            resolution = "None";
+            createRFLogEntry(messageId, messageArgs, messageLevel, resolution);
         }
     }
 }
@@ -1010,12 +1010,13 @@ void HealthSensor::readHealthSensor()
             value = std::any_cast<double>(result);
         }
         else
-        {   std::vector<std::any> args = {sensorConfig.path};
+        {
+            std::vector<std::any> args = {sensorConfig.path};
             std::any result = readSensors.find(sensorConfig.name)->second(args);
             value = std::any_cast<double>(result);
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         error("Exception occurred while reading sensor {SENSOR}: {ERROR}",
               "SENSOR", sensorConfig.name, "ERROR", e);
@@ -1037,7 +1038,7 @@ void HealthSensor::readHealthSensor()
     }
     /* Add new item at the back */
     valQueue.push_back(value);
-    
+
     /*check if the sensor reading has crossed peak*/
     checkServiceCpuPeak(value);
 
@@ -1088,8 +1089,7 @@ void HealthSensor::startUnit(const std::string& sysdUnit,
 
 void HealthSensor::startUnit(const std::string& sysdUnit,
                              const std::string& resource,
-                             const std::string& binaryname,
-                             const double usage)
+                             const std::string& binaryname, const double usage)
 {
     if (sysdUnit.empty())
     {
@@ -1131,7 +1131,7 @@ void HealthMon::recreateSensors()
     createHealthSensors(bmcInventoryPaths);
     createServiceHealthSensor(bmcInventoryPaths);
 }
- 
+
 void printConfig(HealthConfig& cfg)
 {
 #ifdef PRINT_HELTH_CONFIG_ENABLED
@@ -1169,23 +1169,23 @@ void HealthMon::createHealthSensors(
 /*check for process whose sensors are not created initially*/
 void HealthMon::findPendingSensors()
 {
-    for(auto& cfg : serviceSensorConfigs)
+    for (auto& cfg : serviceSensorConfigs)
     {
-        if(healthSensors.find(cfg.name) == healthSensors.end())
+        if (healthSensors.find(cfg.name) == healthSensors.end())
         {
             pendingSensors.insert(cfg.name);
         }
     }
 }
 
-void HealthMon::createServiceHealthSensorInstance(HealthConfig& cfg, 
-                            const std::vector<std::string>& bmcInventoryPaths,
-                            int pid)
+void HealthMon::createServiceHealthSensorInstance(
+    HealthConfig& cfg, const std::vector<std::string>& bmcInventoryPaths,
+    int pid)
 {
     std::string objPath = std::string(HEALTH_SENSOR_PATH) + cfg.name;
 
     auto healthSensor = std::make_shared<HealthSensor>(
-            bus, objPath.c_str(), cfg, bmcInventoryPaths, pid);
+        bus, objPath.c_str(), cfg, bmcInventoryPaths, pid);
     healthSensors.emplace(cfg.name, healthSensor);
 
     info("{SENSOR} Health Sensor created", "SENSOR", cfg.name);
@@ -1199,26 +1199,30 @@ void HealthMon::createServiceHealthSensor(
     const std::vector<std::string>& bmcInventoryPaths)
 {
     DIR* dir = opendir("/proc");
-    if (!dir) {
+    if (!dir)
+    {
         error("Failed to open the /proc directory");
-        return; 
+        return;
     }
     dirent* entry;
-    while ((entry = readdir(dir))) {
-        if (entry->d_type == DT_DIR) {
+    while ((entry = readdir(dir)))
+    {
+        if (entry->d_type == DT_DIR)
+        {
             // Check if the directory name is a number (potential process ID)
-            if (!containsOnlyDigits(entry->d_name)) {
+            if (!containsOnlyDigits(entry->d_name))
+            {
                 continue;
             }
             int pid = std::stoi(entry->d_name);
-            if (pid != 0) 
+            if (pid != 0)
             {
                 // Build the path to the "comm" file for this process
                 std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
 
                 // Open the "comm" file for reading
                 std::ifstream commFile(commPath);
-                if (commFile) 
+                if (commFile)
                 {
                     std::string processName;
                     std::getline(commFile, processName);
@@ -1226,13 +1230,16 @@ void HealthMon::createServiceHealthSensor(
                     // Check if the process name is pre-configured
                     for (auto& cfg : serviceSensorConfigs)
                     {
-                        if (cfg.binaryName == processName && ((cfg.name.rfind(serviceMemory, 0) == 0 ) 
-                                                          || (cfg.name.rfind(serviceCPU, 0) == 0 )))
+                        if (cfg.binaryName == processName &&
+                            ((cfg.name.rfind(serviceMemory, 0) == 0) ||
+                             (cfg.name.rfind(serviceCPU, 0) == 0)))
                         {
-                            createServiceHealthSensorInstance(cfg, bmcInventoryPaths, pid);
+                            createServiceHealthSensorInstance(
+                                cfg, bmcInventoryPaths, pid);
                         }
                     }
-                    //TODO: handle dynamic services and multiple process instances here
+                    // TODO: handle dynamic services and multiple process
+                    // instances here
                 }
             }
         }
@@ -1277,8 +1284,8 @@ void HealthMon::getConfigData(Json& data, HealthConfig& cfg)
         auto criticalData = threshold.value("Critical", empty);
         if (!criticalData.empty())
         {
-            cfg.criticalHigh =
-                criticalData.value("Value", defaultHighThreshold);
+            cfg.criticalHigh = criticalData.value("Value",
+                                                  defaultHighThreshold);
             cfg.criticalLog = criticalData.value("Log", true);
             cfg.criticalTgt = criticalData.value("Target", "");
         }
@@ -1322,8 +1329,8 @@ std::vector<HealthConfig> HealthMon::getHealthConfig()
 
         /* key need match default value in map readSensors or match the key
          * start with "Storage" or "Inode" */
-        bool isStorageOrInode =
-            (key.rfind(storage, 0) == 0 || key.rfind(inode, 0) == 0);
+        bool isStorageOrInode = (key.rfind(storage, 0) == 0 ||
+                                 key.rfind(inode, 0) == 0);
         if (readSensors.find(key) != readSensors.end() || isStorageOrInode)
         {
             HealthConfig cfg = HealthConfig();
@@ -1370,8 +1377,8 @@ std::vector<HealthConfig> HealthMon::getServiceHealthConfig()
         auto key = j.key();
         /* key need match default value in map readSensors or match the key
          * start with "Service_CPU_" or "Service_Memory_" */
-        bool isServiceCPUOrMemory =
-            (key.rfind(serviceCPU, 0) == 0 || key.rfind(serviceMemory, 0) == 0);
+        bool isServiceCPUOrMemory = (key.rfind(serviceCPU, 0) == 0 ||
+                                     key.rfind(serviceMemory, 0) == 0);
         if (readSensors.find(key) != readSensors.end() || isServiceCPUOrMemory)
         {
             HealthConfig cfg = HealthConfig();
@@ -1422,26 +1429,30 @@ void HealthMon::createPendingSensors()
         findPathsWithType(bus, BMC_INVENTORY_ITEM);
 
     DIR* dir = opendir("/proc");
-    if (!dir) {
+    if (!dir)
+    {
         error("Failed to open the /proc directory");
-        return; 
+        return;
     }
     dirent* entry;
-    while ((entry = readdir(dir))) {
-        if (entry->d_type == DT_DIR) {
+    while ((entry = readdir(dir)))
+    {
+        if (entry->d_type == DT_DIR)
+        {
             // Check if the directory name is a number (potential process ID)
-            if (!containsOnlyDigits(entry->d_name)) {
+            if (!containsOnlyDigits(entry->d_name))
+            {
                 continue;
             }
             int pid = std::stoi(entry->d_name);
-            if (pid != 0) 
+            if (pid != 0)
             {
                 // Build the path to the "comm" file for this process
                 std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
 
                 // Open the "comm" file for reading
                 std::ifstream commFile(commPath);
-                if (commFile) 
+                if (commFile)
                 {
                     std::string processName;
                     std::getline(commFile, processName);
@@ -1449,21 +1460,29 @@ void HealthMon::createPendingSensors()
                     // Check if the process name is pre-configured
                     for (auto& cfg : serviceSensorConfigs)
                     {
-                        if (cfg.binaryName == processName && ((cfg.name.rfind(serviceMemory, 0) == 0 ) 
-                                                          || (cfg.name.rfind(serviceCPU, 0) == 0 )))
+                        if (cfg.binaryName == processName &&
+                            ((cfg.name.rfind(serviceMemory, 0) == 0) ||
+                             (cfg.name.rfind(serviceCPU, 0) == 0)))
                         {
-                            if(healthSensors.find(cfg.name) == healthSensors.end())
+                            if (healthSensors.find(cfg.name) ==
+                                healthSensors.end())
                             {
                                 removePendingSensor(cfg.name);
-                                info("ASSERT :: create HealthSensor for new service, Sensor name :: {SENSOR}","SENSOR",cfg.name);
-                                createServiceHealthSensorInstance(cfg, bmcInventoryPaths, pid);  
+                                info(
+                                    "ASSERT :: create HealthSensor for new service, Sensor name :: {SENSOR}",
+                                    "SENSOR", cfg.name);
+                                createServiceHealthSensorInstance(
+                                    cfg, bmcInventoryPaths, pid);
                             }
-                            else if(healthSensors[cfg.name]->getPID() != pid)
+                            else if (healthSensors[cfg.name]->getPID() != pid)
                             {
                                 healthSensors.erase(cfg.name);
                                 removePendingSensor(cfg.name);
-                                info("ASSERT :: create HealthSensor for PID restarted service, Sensor name :: {SENSOR}","SENSOR",cfg.name);
-                                createServiceHealthSensorInstance(cfg, bmcInventoryPaths, pid);
+                                info(
+                                    "ASSERT :: create HealthSensor for PID restarted service, Sensor name :: {SENSOR}",
+                                    "SENSOR", cfg.name);
+                                createServiceHealthSensorInstance(
+                                    cfg, bmcInventoryPaths, pid);
                             }
                         }
                     }
@@ -1471,9 +1490,9 @@ void HealthMon::createPendingSensors()
             }
         }
     }
-    closedir(dir); 
-    
-    if(getCountOfPendingSensors() == 0)
+    closedir(dir);
+
+    if (getCountOfPendingSensors() == 0)
     {
         backgroundTimer.setEnabled(false);
         info("function createPendingSensors disabled");
@@ -1481,12 +1500,11 @@ void HealthMon::createPendingSensors()
     else
     {
         info("Pending Sensors are :: ");
-        for(auto sensors : pendingSensors)
+        for (auto sensors : pendingSensors)
         {
-            info("{SENSORS}","SENSORS",sensors);
+            info("{SENSORS}", "SENSORS", sensors);
         }
     }
-
 }
 
 } // namespace health
@@ -1565,82 +1583,81 @@ int main()
     healthMon->sleepuntilSystemBoot();
 
     // Create sensors, since the system is booted up
-    // This is needed since some processes are not started until the system is booted
-    // up, e.g. oobamld gppmgrd
-    // This case will be handled when dynamic services are supported
-    // and below line can be moved to .hpp file as it was before.
+    // This is needed since some processes are not started until the system is
+    // booted up, e.g. oobamld gppmgrd This case will be handled when dynamic
+    // services are supported and below line can be moved to .hpp file as it was
+    // before.
     healthMon->recreateSensors();
-    
+
     // Add object manager through object_server
     sdbusplus::asio::object_server objectServer(conn);
 
     sdbusplus::asio::sd_event_wrapper sdEvents(io);
-    
-    /*comment out code since we don't need DBUS ASSOCIATION now*/
-    #ifdef DBUS_ASSOCIATION
-    
+
+/*comment out code since we don't need DBUS ASSOCIATION now*/
+#ifdef DBUS_ASSOCIATION
+
     sensorRecreateTimer = std::make_shared<boost::asio::steady_timer>(io);
 
     // If the SystemInventory does not exist: wait for the InterfaceAdded signal
-    auto interfacesAddedSignalHandler = std::make_unique<
-        sdbusplus::bus::match_t>(
-        static_cast<sdbusplus::bus_t&>(*conn),
-        sdbusplus::bus::match::rules::interfacesAdded(),
-        [conn](sdbusplus::message_t& msg) {
-            using Association =
-                std::tuple<std::string, std::string, std::string>;
-            using InterfacesAdded = std::vector<std::pair<
-                std::string,
-                std::vector<std::pair<
-                    std::string, std::variant<std::vector<Association>>>>>>;
+    auto interfacesAddedSignalHandler =
+        std::make_unique<sdbusplus::bus::match_t>(
+            static_cast<sdbusplus::bus_t&>(*conn),
+            sdbusplus::bus::match::rules::interfacesAdded(),
+            [conn](sdbusplus::message_t& msg) {
+        using Association = std::tuple<std::string, std::string, std::string>;
+        using InterfacesAdded = std::vector<std::pair<
+            std::string,
+            std::vector<std::pair<std::string,
+                                  std::variant<std::vector<Association>>>>>>;
 
-            sdbusplus::message::object_path o;
-            InterfacesAdded interfacesAdded;
+        sdbusplus::message::object_path o;
+        InterfacesAdded interfacesAdded;
 
-            try
-            {
-                msg.read(o);
-                msg.read(interfacesAdded);
-            }
-            catch (const std::exception& e)
-            {
-                error(
-                    "Exception occurred while processing interfacesAdded:  {EXCEPTION}",
-                    "EXCEPTION", e.what());
-                return;
-            }
+        try
+        {
+            msg.read(o);
+            msg.read(interfacesAdded);
+        }
+        catch (const std::exception& e)
+        {
+            error(
+                "Exception occurred while processing interfacesAdded:  {EXCEPTION}",
+                "EXCEPTION", e.what());
+            return;
+        }
 
-            // Ignore any signal coming from health-monitor itself.
-            if (msg.get_sender() == conn->get_unique_name())
-            {
-                return;
-            }
+        // Ignore any signal coming from health-monitor itself.
+        if (msg.get_sender() == conn->get_unique_name())
+        {
+            return;
+        }
 
-            // Check if the BMC Inventory is in the interfaces created.
-            bool hasBmcConfiguration = false;
-            for (const auto& x : interfacesAdded)
+        // Check if the BMC Inventory is in the interfaces created.
+        bool hasBmcConfiguration = false;
+        for (const auto& x : interfacesAdded)
+        {
+            if (x.first == BMC_CONFIGURATION)
             {
-                if (x.first == BMC_CONFIGURATION)
-                {
-                    hasBmcConfiguration = true;
-                }
+                hasBmcConfiguration = true;
             }
+        }
 
-            if (hasBmcConfiguration)
-            {
-                info(
-                    "BMC configuration detected, will create a corresponding Inventory item");
-                healthMon->createBmcInventoryIfNotCreated();
-                needUpdate = true;
-            }
-        });
+        if (hasBmcConfiguration)
+        {
+            info(
+                "BMC configuration detected, will create a corresponding Inventory item");
+            healthMon->createBmcInventoryIfNotCreated();
+            needUpdate = true;
+        }
+    });
 
     // Start the timer
     boost::asio::post(io, [conn]() {
         sensorRecreateTimerCallback(sensorRecreateTimer, *conn);
     });
 
-    #endif
+#endif
 
     io.run();
 
