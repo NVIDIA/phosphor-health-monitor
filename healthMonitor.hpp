@@ -104,8 +104,7 @@ class HealthSensor : public healthIfaces
     HealthSensor(sdbusplus::bus_t& bus, const char* objPath,
                  HealthConfig& sensorConfig,
                  const std::vector<std::string>& bmcIds) :
-        healthIfaces(bus, objPath),
-        bus(bus), sensorConfig(sensorConfig),
+        healthIfaces(bus, objPath), bus(bus), sensorConfig(sensorConfig),
         timerEvent(sdeventplus::Event::get_default()),
         readTimer(timerEvent, std::bind(&HealthSensor::readHealthSensor, this))
     {
@@ -114,9 +113,8 @@ class HealthSensor : public healthIfaces
     HealthSensor(sdbusplus::bus_t& bus, const char* objPath,
                  HealthConfig& sensorConfig,
                  const std::vector<std::string>& bmcIds, const int processId) :
-        healthIfaces(bus, objPath),
-        bus(bus), sensorConfig(sensorConfig),pid(processId),
-        timerEvent(sdeventplus::Event::get_default()),
+        healthIfaces(bus, objPath), bus(bus), sensorConfig(sensorConfig),
+        pid(processId), timerEvent(sdeventplus::Event::get_default()),
         readTimer(timerEvent, std::bind(&HealthSensor::readHealthSensor, this))
     {
         initHealthSensor(bmcIds);
@@ -131,7 +129,8 @@ class HealthSensor : public healthIfaces
     void setSensorThreshold(double criticalHigh, double warningHigh);
     /** @brief Check Sensor threshold and update alarm and log */
     void checkSensorThreshold(const double value);
-    /** @brief Check Sensor peak value and create RF entry if its above critical*/
+    /** @brief Check Sensor peak value and create RF entry if its above
+     * critical*/
     void checkServiceCpuPeak(const double value);
     /** @brief create Redfish log  */
     void createRFLogEntry(const std::string& messageId,
@@ -141,16 +140,17 @@ class HealthSensor : public healthIfaces
 
     /** @brief create Sensor Treshold Redfish log  */
     void createThresholdLogEntry(const std::string& threshold,
-                                const std::string& sensorName, double value,
-                                const double configThresholdValue);
-    
+                                 const std::string& sensorName, double value,
+                                 const double configThresholdValue);
+
     int getPID();
+
   private:
     /** @brief sdbusplus bus client connection. */
     sdbusplus::bus_t& bus;
     /** @brief Sensor config from config file */
     HealthConfig& sensorConfig;
-    
+
     int pid;
     /** @brief the Event Loop structure */
     sdeventplus::Event timerEvent;
@@ -171,13 +171,11 @@ class HealthSensor : public healthIfaces
     /** @brief check Peak log rate limit */
     bool checkPeakLogRateLimitWindow();
     /** @brief Start configured threshold systemd unit */
-    void startUnit(const std::string& sysdUnit,
-                   const std::string& resource, const std::string& path);
+    void startUnit(const std::string& sysdUnit, const std::string& resource,
+                   const std::string& path);
     /** @brief Start configured threshold systemd unit */
-    void startUnit(const std::string& sysdUnit,
-                   const std::string& resource, 
-                   const std::string& binaryname, 
-                   const double usage);
+    void startUnit(const std::string& sysdUnit, const std::string& resource,
+                   const std::string& binaryname, const double usage);
 };
 
 class BmcInventory : public BmcInterface
@@ -210,7 +208,8 @@ class HealthMon
     HealthMon(sdbusplus::bus_t& bus) :
         bus(bus), sensorsObjectManager(bus, "/xyz/openbmc_project/sensors"),
         timerEvent(sdeventplus::Event::get_default()),
-        backgroundTimer(timerEvent, std::bind(&HealthMon::createPendingSensors, this))
+        backgroundTimer(timerEvent,
+                        std::bind(&HealthMon::createPendingSensors, this))
     {
         // Read JSON file
         sensorConfigs = getHealthConfig();
@@ -239,45 +238,62 @@ class HealthMon
 
     /** @brief Create the BMC Inventory object */
     void createBmcInventoryIfNotCreated();
-    
+
     /** create individual health sensor instance*/
-    void createServiceHealthSensorInstance(HealthConfig& cfg, 
-                            const std::vector<std::string>& bmcInventoryPaths,
-                            int pid);
+    void createServiceHealthSensorInstance(
+        HealthConfig& cfg, const std::vector<std::string>& bmcInventoryPaths,
+        int pid);
     std::shared_ptr<BmcInventory> bmcInventory;
 
     bool bmcInventoryCreated();
 
-    int getCountOfPendingSensors() { return pendingSensors.size(); }
+    int getCountOfPendingSensors()
+    {
+        return pendingSensors.size();
+    }
 
-    void addPendingSensor(std::string & process) { pendingSensors.insert(process); }
+    void addPendingSensor(std::string& process)
+    {
+        pendingSensors.insert(process);
+    }
 
-    void removePendingSensor(std::string & process) { pendingSensors.erase(process); }
+    void removePendingSensor(std::string& process)
+    {
+        pendingSensors.erase(process);
+    }
 
     void findPendingSensors();
 
-    void enableTimer() { backgroundTimer.setEnabled(true); }
+    void enableTimer()
+    {
+        backgroundTimer.setEnabled(true);
+    }
 
-    unsigned int getlogRateLimit() { return logRateLimit; } 
+    unsigned int getlogRateLimit()
+    {
+        return logRateLimit;
+    }
+
   private:
     /** @brief Logging Rate Limit */
     unsigned int logRateLimit;
     sdbusplus::bus_t& bus;
     /** @brief data structure for storing pending sensors*/
-    std::set<std::string>pendingSensors;
+    std::set<std::string> pendingSensors;
 
     std::vector<HealthConfig> sensorConfigs;
     std::vector<HealthConfig> serviceSensorConfigs;
     std::vector<HealthConfig> getHealthConfig();
     std::vector<HealthConfig> getServiceHealthConfig();
-       
+
     /** check for start/restart of pending HealthSensors*/
     void createPendingSensors();
     sdbusplus::server::manager_t sensorsObjectManager;
-     /** @brief the Event Loop structure */
+    /** @brief the Event Loop structure */
     sdeventplus::Event timerEvent;
-     /** @brief HealthMon Read Timer */
-    sdeventplus::utility::Timer<sdeventplus::ClockId::Monotonic> backgroundTimer;
+    /** @brief HealthMon Read Timer */
+    sdeventplus::utility::Timer<sdeventplus::ClockId::Monotonic>
+        backgroundTimer;
     unsigned int bootDelay;
 };
 

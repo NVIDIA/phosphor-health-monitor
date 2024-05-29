@@ -6,23 +6,23 @@ namespace phosphor
 {
 namespace ipc
 {
-    class AsioConnection
-    {
-        public:
-            AsioConnection() = delete;
-            AsioConnection(const AsioConnection&) = delete;
-            AsioConnection& operator=(const AsioConnection&) = delete;
-            AsioConnection(AsioConnection&&) = delete;
-            AsioConnection& operator=(AsioConnection&&) = delete;
-            ~AsioConnection() = delete;
+class AsioConnection
+{
+  public:
+    AsioConnection() = delete;
+    AsioConnection(const AsioConnection&) = delete;
+    AsioConnection& operator=(const AsioConnection&) = delete;
+    AsioConnection(AsioConnection&&) = delete;
+    AsioConnection& operator=(AsioConnection&&) = delete;
+    ~AsioConnection() = delete;
 
-            /** @brief Get the asio connection. */
-            static auto& getAsioConnection()
-            {
-                static boost::asio::io_context io;
-                static auto conn = std::make_shared<sdbusplus::asio::connection>(io);
-                return conn;
-            }
-    };
-} // namespace user
+    /** @brief Get the asio connection. */
+    static auto& getAsioConnection()
+    {
+        static boost::asio::io_context io;
+        static auto conn = std::make_shared<sdbusplus::asio::connection>(io);
+        return conn;
+    }
+};
+} // namespace ipc
 } // namespace phosphor
