@@ -116,6 +116,7 @@ int getNumberofCPU()
     return cpus;
 }
 void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
+                             Threshold::Bound& bound,
                              const std::string& sensorName, double value,
                              const double configThresholdValue)
 {
@@ -124,7 +125,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
     std::string messageLevel{};
     std::string resolution{};
 
-    if (type == Threshold::Type::Warning)
+    if (type == Threshold::Type::Warning && bound == Threshold::Bound::Upper)
     {
         messageId += "SensorThresholdWarningHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
@@ -133,9 +134,27 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
-    else if (type == Threshold::Type::Critical)
+    else if (type == Threshold::Type::Critical && bound == Threshold::Bound::Upper)
     {
         messageId += "SensorThresholdCriticalHighGoingHigh";
+        messageArgs = sensorName + "," + std::to_string(value) + "," +
+                      std::to_string(configThresholdValue);
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+        resolution ="None";
+        createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
+    }
+    else if (type == Threshold::Type::Warning && bound == Threshold::Bound::Lower)
+    {
+        messageId += "SensorThresholdWarningLowGoingLow";
+        messageArgs = sensorName + "," + std::to_string(value) + "," +
+                      std::to_string(configThresholdValue);
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
+        resolution = "None";
+        createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
+    }
+    else if (type == Threshold::Type::Critical && bound == Threshold::Bound::Lower)
+    {
+        messageId += "SensorThresholdCriticalLowGoingLow";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";

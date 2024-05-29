@@ -21,6 +21,7 @@ auto findPaths(sdbusplus::async::context& ctx, const std::string& iface,
                const std::string& subpath) -> sdbusplus::async::task<paths_t>;
 
 void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
+                             Threshold::Bound& bound,
                              const std::string& sensorName, double value,
                              const double configThresholdValue);
 

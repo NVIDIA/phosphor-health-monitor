@@ -225,8 +225,7 @@ void IPCHealthSensor::createRFLogEntry(const std::string& messageId,
             lg2::error("Phosphor logging Create resp_handler got error ");
             return;
         }
-    },
-        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+    }, "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
         "xyz.openbmc_project.Logging.Create", "Create", messageId, level,
         addData);
 }
@@ -264,8 +263,7 @@ void IPCHealthSensor::startUnit(const std::string& sysdUnit,
             lg2::error("StartUnit resp_handler got error ");
             return;
         }
-    },
-        "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+    }, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager", "StartUnit", service, "replace");
 }
 } // namespace ipc

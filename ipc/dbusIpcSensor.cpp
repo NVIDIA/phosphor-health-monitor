@@ -179,8 +179,8 @@ void DBusIpcSensor::processdata()
                                     -> double {
                                 // Visit the variant to handle each possible
                                 // type
-                                return acc + std::visit(
-                                                 [](auto&& arg) -> double {
+                                return acc +
+                                       std::visit([](auto&& arg) -> double {
                                     using T = std::decay_t<decltype(arg)>;
                                     if constexpr (std::is_same_v<T, long int>)
                                     {
@@ -194,8 +194,7 @@ void DBusIpcSensor::processdata()
                                         // type, add zero
                                         return 0;
                                     }
-                                },
-                                                 val);
+                                }, val);
                             });
                             avgValue = avgValue / ipcConfig.windowSize;
                             if (avgValue < it->warningHigh)

@@ -204,7 +204,7 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
                     {
                         std::string path = "";
                         phosphor::health::utils::createThresholdLogEntry(
-                            bus, type, config.name, value.current,
+                            bus, type, bound, config.name, value.current,
                             thresholdValue);
                         if (this->type ==
                             phosphor::health::metric::Type::processCPU)
