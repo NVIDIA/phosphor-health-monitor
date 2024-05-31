@@ -3,92 +3,62 @@ project(
     'cpp',
     version: '1.0',
     default_options: [
-        'cpp_std=c++20',
-        'werror=true',
+        'cpp_std=c++23',
     ],
-    meson_version: '>=0.58.0',
+    meson_version: '>=1.1.1',
 )
 
-cpp = meson.get_compiler('cpp')
-
-if cpp.has_header('nlohmann/json.hpp')
-    nlohmann_json = declare_dependency()
-else
-    subproject('nlohmann-json')
-    nlohmann_json = dependency('nlohmann_json')
-endif
+phosphor_logging_dep = dependency('phosphor-logging')
+phosphor_dbus_interfaces_dep = dependency('phosphor-dbus-interfaces')
+sdbusplus_dep = dependency('sdbusplus')
+sdeventplus_dep = dependency('sdeventplus')
+nlohmann_json_dep = dependency('nlohmann_json', include_type: 'system')
+base_deps = [
+    phosphor_logging_dep,
+    phosphor_dbus_interfaces_dep,
+    sdbusplus_dep,
+    sdeventplus_dep,
+    nlohmann_json_dep
+]
 
 executable(
     'health-monitor',
     [
-        'healthMonitor.cpp',
+        'health_metric_config.cpp',
+        'health_metric.cpp',
+        'health_utils.cpp',
+        'health_metric_collection.cpp',
+        'health_monitor.cpp',
     ],
     dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
+        base_deps
     ],
     install: true,
     install_dir: get_option('bindir')
 )
+# Include the ipc subdirectory
+subdir('ipc')
 
-executable(
-    'ipc-monitor',
-    [
-        'ipcMain.cpp',
-        'ipcMonitor.cpp',
-        'ipcHealthSensor.cpp',
-        'dbusIpcSensor.cpp',
-    ],
-    dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
-    ],
-    install: true,
-    install_dir: get_option('bindir')
-)
-
-executable(
-    'inject-error',
-    [
-        'tools/dbus_error_injection.cpp',
-    ],
-    dependencies: [
-        dependency('phosphor-dbus-interfaces'),
-        dependency('phosphor-logging'),
-        dependency('sdbusplus'),
-        dependency('sdeventplus'),
-        nlohmann_json,
-    ],
-    install: false,
-    install_dir: get_option('bindir')
-)
-
-install_data(sources : 'bmc_health_config.json', install_dir : '/etc/healthMon')
-install_data(sources : 'bmc_ipc_config.json', install_dir : '/etc/healthMon')
-install_data(sources : 'service_health_config.json', install_dir : '/etc/healthMon')
+log_rate_limit = get_option('log_rate_limit')
+boot_delay = get_option('boot_delay')
+install_data(sources : 'process_health_config.json', install_dir : '/etc/healthMon')
 install_data(sources : 'system_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'run_top.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'system_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'service_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'service_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
-install_data(sources : 'ipc_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 
 conf_data = configuration_data()
 conf_data.set('HEALTH_CONFIG_FILE', '"/etc/healthMon/bmc_health_config.json"')
-conf_data.set('IPC_CONFIG_FILE', '"/etc/healthMon/bmc_ipc_config.json"')
-conf_data.set('SERVICE_HEALTH_CONFIG_FILE', '"/etc/healthMon/service_health_config.json"')
+conf_data.set('SERVICE_HEALTH_CONFIG_FILE', '"/etc/healthMon/process_health_config.json"')
 conf_data.set('HEALTH_BUS_NAME', '"xyz.openbmc_project.HealthMon"')
 conf_data.set('HEALTH_SENSOR_PATH', '"/xyz/openbmc_project/sensors/utilization/"')
 conf_data.set('SENSOR_OBJPATH', '"/xyz/openbmc_project/sensors"')
 conf_data.set('INVENTORY_OBJPATH', '"/xyz/openbmc_project/inventory"')
-conf_data.set('PRINT_HELTH_CONFIG_ENABLED', true)
-
+conf_data.set('MONITOR_COLLECTION_INTERVAL', get_option('monitor-collection-interval'))
+conf_data.set('LOG_RATE_LIMIT', log_rate_limit)
+conf_data.set('BOOT_DELAY', boot_delay)
+conf_data.set('ENABLE_DEBUG', false)
 configure_file(output : 'config.h',
                configuration : conf_data)
 
@@ -100,20 +70,6 @@ configure_file(
   output: 'phosphor-health-monitor.service',
   configuration: conf_data,
   install: true,
-  install_dir: systemd.get_variable('systemdsystemunitdir'))
-
-configure_file(
-  input: 'phosphor-ipc-monitor.service.in',
-  output: 'phosphor-ipc-monitor.service',
-  configuration: conf_data,
-  install: true,
-  install_dir: systemd.get_variable('systemdsystemunitdir'))
-
-configure_file(
-  input: 'ipc_error_injuction_test.service.in',
-  output: 'ipc_error_injuction_test.service',
-  configuration: conf_data,
-  install: false,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
 
   configure_file(
@@ -144,9 +100,6 @@ configure_file(
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
 
-configure_file(
-  input: 'ipcrecovery.service.in',
-  output: 'HMIpcRestart@.service',
-  configuration: conf_data,
-  install: true,
-  install_dir: systemd.get_variable('systemdsystemunitdir'))
+  if get_option('tests').allowed()
+    subdir('test')
+  endif
