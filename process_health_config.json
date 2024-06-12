@@ -287,5 +287,133 @@
                 "Target": "HMServiceWarning@.service"
             }
         }
+    },
+    "ProcessMemory_nsmd": {
+        "BinaryName": "nsmd",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 40.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 30.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessCPU_nsmd": {
+        "BinaryName": "nsmd",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 45.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 35.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessMemory_fdr": {
+        "BinaryName": "nvidia-fdr",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessCPU_fdr": {
+        "BinaryName": "nvidia-fdr",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessMemory_dbusbroker": {
+        "BinaryName": "dbus-broker",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessCPU_dbusbroker": {
+        "BinaryName": "dbus-broker",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessMemory_entitymanager": {
+        "BinaryName": "entity-manager",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
+    },
+    "ProcessCPU_entitymanager": {
+        "BinaryName": "entity-manager",
+        "Window_size": 30,
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 15.0,
+                "Log": true,
+                "Target": "HMServiceRecovery@.service"
+            },
+            "Warning_Upper": {
+                "Value": 10.0,
+                "Log": true,
+                "Target": "HMServiceWarning@.service"
+            }
+        }
     }
 }
