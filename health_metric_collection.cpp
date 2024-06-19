@@ -375,6 +375,11 @@ auto HealthMetricCollection::readStorage() -> bool
 #ifdef ENABLE_DEBUG
         debug("Reading storage metric for {PATH}", "PATH", config.path);
 #endif
+        if(metrics.find(config.name) == metrics.end())
+        {
+            // No metric object created for this config
+            continue;
+        }
         if (statvfs(config.path.c_str(), &buffer) != 0)
         {
             auto e = errno;
@@ -546,6 +551,16 @@ void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
     {
         for (auto& config : configs)
         {
+            if(type == MetricIntf::Type::storage)
+            {
+                // check directory path exists
+                if (!std::filesystem::is_directory(config.path))
+                {
+                    error("Path {PATH} does not exist for storage metric {NAME}",
+                          "PATH", config.path, "NAME", config.name);
+                    continue;
+                }
+            }
 #ifdef ENABLE_DEBUG
             debug("Creating health metric {NAME}", "NAME", config.name);
 #endif
