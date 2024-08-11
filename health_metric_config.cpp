@@ -48,6 +48,7 @@ static const auto validTypes = std::unordered_map<std::string, Type>{
     {"Memory", Type::memory},
     {"Storage", Type::storage},
     {"Inode", Type::inode},
+    {"EMMC", Type::emmc},
     {"ProcessCPU", Type::processCPU},
     {"ProcessMemory", Type::processMemory}};
 
@@ -64,7 +65,9 @@ static const auto validSubTypes = std::unordered_map<std::string, SubType>{
     {"Memory_Buffered_And_Cached", SubType::memoryBufferedAndCached},
     {"Memory_Processes", SubType::memoryProcesses},
     {"Storage_RW", SubType::NA},
-    {"Storage_TMP", SubType::NA}};
+    {"Storage_TMP", SubType::NA},
+    {"EMMC_Lifetime", SubType::emmcLifetime},
+    {"EMMC_Blocks", SubType::emmcBlocks}};
 
 /** Deserialize a Threshold from JSON. */
 void from_json(const json& j, Threshold& self)
@@ -256,6 +259,36 @@ json defaultHealthMetricConfig = R"({
         "Threshold": {
             "Critical_Lower": {
                 "Value": 15.0,
+                "Log": true,
+                "Target": ""
+            }
+        }
+    },
+    "EMMC_Lifetime": {
+        "Path": "/sys/block/mmcblk0/device/life_time",
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 9,
+                "Log": true,
+                "Target": ""
+            },
+            "Warning_Upper": {
+                "Value": 8,
+                "Log": true,
+                "Target": ""
+            }
+        }
+    },
+    "EMMC_Blocks": {
+        "Path": "/sys/block/mmcblk0/device/pre_eol_info",
+        "Threshold": {
+            "Critical_Upper": {
+                "Value": 2,
+                "Log": true,
+                "Target": ""
+            },
+            "Warning_Upper": {
+                "Value": 1,
                 "Log": true,
                 "Target": ""
             }

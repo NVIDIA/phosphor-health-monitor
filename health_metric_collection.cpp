@@ -398,6 +398,66 @@ auto HealthMetricCollection::readStorage() -> bool
     return true;
 }
 
+auto HealthMetricCollection::readEMMC() -> bool
+{
+    for (auto& config : configs)
+    {
+#ifdef ENABLE_DEBUG
+        debug("Reading eMMC metric for {PATH}", "PATH", config.path);
+#endif
+        if(metrics.find(config.name) == metrics.end())
+        {
+            // No metric object created for this config
+            continue;
+        }
+
+        std::ifstream emmcInfo(config.path);
+        if (!emmcInfo.is_open())
+        {
+            error("Unable to open {PATH} for reading eMMC stats", "PATH",
+                  config.path);
+            return false;
+        }
+        std::string line;
+
+        switch (config.subType)
+        {
+            case MetricIntf::SubType::emmcLifetime:
+            {
+                std::getline(emmcInfo, line);
+                std::istringstream iss(line);
+                uint16_t lifetime_a = 0, lifetime_b = 0;
+                iss >> std::hex >> lifetime_a >> lifetime_b;
+#ifdef ENABLE_DEBUG
+                debug("EMMC Metric {SUBTYPE}: {VALUE}, {TOTAL}", "SUBTYPE",
+                      config.subType, "VALUE", lifetime_b, "TOTAL", 100);
+#endif
+                metrics[config.name]->update(MValue(lifetime_b, 100));
+                break;
+            }
+            case MetricIntf::SubType::emmcBlocks:
+            {
+                std::getline(emmcInfo, line);
+                std::istringstream iss(line);
+                uint16_t pre_eol_info = 0;
+                iss >> std::hex >> pre_eol_info;
+#ifdef ENABLE_DEBUG
+                debug("EMMC Metric {SUBTYPE}: {VALUE}, {TOTAL}", "SUBTYPE",
+                      config.subType, "VALUE", pre_eol_info, "TOTAL", 100);
+#endif
+                metrics[config.name]->update(MValue(pre_eol_info, 100));
+                break;
+            }
+            default:
+            {
+                error("Unknown eMMC metric sub-type {TYPE}", "TYPE", config.subType);
+                break;
+            }
+        }
+    }
+    return true;
+}
+
 void HealthMetricCollection::read()
 {
     switch (type)
@@ -423,6 +483,14 @@ void HealthMetricCollection::read()
             if (!readStorage())
             {
                 error("Failed to read storage health metric");
+            }
+            break;
+        }
+        case MetricIntf::Type::emmc:
+        {
+            if (!readEMMC())
+            {
+                error("Failed to read eMMC health metric");
             }
             break;
         }
@@ -560,9 +628,17 @@ void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
                           "PATH", config.path, "NAME", config.name);
                     continue;
                 }
+            } else if (type == MetricIntf::Type::emmc) {
+                // check file path exists
+                if (!std::filesystem::is_regular_file(config.path))
+                {
+                    error("Path {PATH} does not exist for eMMC metric {NAME}",
+                          "PATH", config.path, "NAME", config.name);
+                    continue;
+                }
             }
 #ifdef ENABLE_DEBUG
-            debug("Creating health metric {NAME}", "NAME", config.name);
+            debug("Creating eMMC metric {NAME}", "NAME", config.name);
 #endif
             metrics[config.name] = std::make_unique<MetricIntf::HealthMetric>(
                 bus, type, config, bmcPaths);

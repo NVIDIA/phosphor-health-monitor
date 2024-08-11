@@ -42,6 +42,11 @@ bool isValidSubType(metric::Type type, metric::SubType subType)
                          metric::SubType::memoryTotal}
                 .contains(subType);
 
+        case metric::Type::emmc:
+            return set_t{metric::SubType::emmcLifetime,
+                         metric::SubType::emmcBlocks}
+                .contains(subType);
+
         case metric::Type::storage:
         case metric::Type::inode:
             return set_t{metric::SubType::NA}.contains(subType);

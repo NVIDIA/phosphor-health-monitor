@@ -56,6 +56,8 @@ class HealthMetricCollection
     auto readMemory() -> bool;
     /** @brief Read the storage */
     auto readStorage() -> bool;
+    /** @brief Read the eMMC health */
+    auto readEMMC() -> bool;
     /** @brief read process cpu usage*/
     auto readProcessCPU() -> bool;
     /** @brief read process memory usage*/

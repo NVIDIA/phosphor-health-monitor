@@ -5,6 +5,7 @@ ARGUMENT="$1"
 # Extract threshold and resource using space as the delimiter
 RESOURCE=$(echo "$ARGUMENT" | awk '{print $1}')
 STORAGEPATH=$(echo "$ARGUMENT" | awk '{print $2}')
+USAGE=$(echo "$ARGUMENT" | awk '{print $NF}')
 
 echo "Resource: $RESOURCE"
 
@@ -28,6 +29,9 @@ if [[ "$RESOURCE" == "Storage_"* ]]; then
     busctl call xyz.openbmc_project.Logging /xyz/openbmc_project/logging xyz.openbmc_project.Logging.Create Create ssa{ss} "OpenBMC.0.4.BMCSystemResourceInfo" "xyz.openbmc_project.Logging.Entry.Level.Critical" 3 "REDFISH_MESSAGE_ID" "OpenBMC.0.4.BMCSystemResourceInfo" "REDFISH_MESSAGE_ARGS" " $RESOURCE, $STORAGEPATH" xyz.openbmc_project.Logging.Entry.Resolution "None"
 #    sleep 5
 #    systemctl start reboot.target
+elif [[ "$RESOURCE" == "EMMC_"* ]]; then
+    echo "Critical threshold hit for resource $RESOURCE: usage = $USAGE "
+    busctl call xyz.openbmc_project.Logging /xyz/openbmc_project/logging xyz.openbmc_project.Logging.Create Create ssa{ss} "OpenBMC.0.4.BMCSystemResourceInfo" "xyz.openbmc_project.Logging.Entry.Level.Critical" 3 "REDFISH_MESSAGE_ID" "OpenBMC.0.4.BMCSystemResourceInfo" "REDFISH_MESSAGE_ARGS" " $RESOURCE, $USAGE" xyz.openbmc_project.Logging.Entry.Resolution "None"
 else
     echo "Critical threshold hit for $RESOURCE resource "
     TOPOUTPUT=$(/bin/bash /usr/bin/run_top.sh $RESOURCE)

@@ -21,6 +21,7 @@ enum class Type
     memory,
     storage,
     inode,
+    emmc,
     processCPU,
     processMemory,
     unknown
@@ -40,6 +41,9 @@ enum class SubType
     memoryTotal,
     cpuProcesses,
     memoryProcesses,
+    // EMMC subtypes
+    emmcLifetime,
+    emmcBlocks,
     // Types for which subtype is not applicable
     NA
 };
