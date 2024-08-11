@@ -74,6 +74,14 @@ auto HealthMetric::getPath(MType type, std::string name, SubType subType)
             return std::string(BmcPath) + "/" + "memory/processes" + "/" +
                    processName;
         }
+        case SubType::emmcLifetime:
+        {
+            return std::string(BmcPath) + "/" + PathIntf::emmc_lifetime;
+        }
+        case SubType::emmcBlocks:
+        {
+            return std::string(BmcPath) + "/" + PathIntf::emmc_blocks;
+        }
         case SubType::NA:
         {
             if (type == MType::storage)
@@ -106,6 +114,7 @@ void HealthMetric::initProperties()
     switch (type)
     {
         case MType::cpu:
+        case MType::emmc:
         case MType::processMemory:
         case MType::processCPU:
         {
@@ -216,6 +225,12 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
                                  phosphor::health::metric::Type::processMemory)
                         {
                             startUnit(bus, tConfig.target, "Memory", path,
+                                      config.binaryName, value.current);
+                        }
+                        else if (this->type ==
+                                 phosphor::health::metric::Type::emmc)
+                        {
+                            startUnit(bus, tConfig.target, config.name, path,
                                       config.binaryName, value.current);
                         }
                         else
