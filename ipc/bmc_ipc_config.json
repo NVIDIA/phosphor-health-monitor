@@ -6,7 +6,7 @@
     },
     "IpcConfig": {
       "Ipc_name": "dbus",
-      "Frequency": 120,
+      "Frequency": 60,
       "Window_size": 5,
       "Log_rate_limit": 300,
       "Parameters": [

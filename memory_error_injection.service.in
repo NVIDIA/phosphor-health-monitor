@@ -1,0 +1,12 @@
+[Unit]
+Description= Subscribe and block
+After=obmc-mapper.target
+
+[Service]
+ExecStart=@bindir@/inject-memory-leak
+Type=simple
+Restart=always
+SyslogIdentifier=phosphor-health-monitor
+
+[Install]
+WantedBy=multi-user.target
