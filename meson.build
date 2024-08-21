@@ -36,6 +36,15 @@ executable(
     install: true,
     install_dir: get_option('bindir')
 )
+
+executable(
+    'inject-memory-leak',
+    [
+	'tools/memory_leak.cpp',
+    ],
+    install: false,
+    install_dir: get_option('bindir')
+)
 # Include the ipc subdirectory
 subdir('ipc')
 
@@ -98,6 +107,13 @@ configure_file(
   output: 'HMServiceWarning@.service',
   configuration: conf_data,
   install: true,
+  install_dir: systemd.get_variable('systemdsystemunitdir'))
+
+  configure_file(
+  input: 'memory_error_injection.service.in',
+  output: 'memory_error_injection.service',
+  configuration: conf_data,
+  install: false,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
 
   if get_option('tests').allowed()

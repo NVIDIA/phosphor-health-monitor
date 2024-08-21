@@ -96,7 +96,7 @@ struct HealthMetric
 
     struct defaults
     {
-        static constexpr auto windowSize = 120;
+        static constexpr auto windowSize = 12;
         static constexpr auto path = "";
         static constexpr auto hysteresis = 1.0;
         static constexpr auto frequency = 1;
