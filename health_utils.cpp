@@ -134,16 +134,18 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
-    else if (type == Threshold::Type::Critical && bound == Threshold::Bound::Upper)
+    else if (type == Threshold::Type::Critical &&
+             bound == Threshold::Bound::Upper)
     {
         messageId += "SensorThresholdCriticalHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-        resolution ="None";
+        resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
-    else if (type == Threshold::Type::Warning && bound == Threshold::Bound::Lower)
+    else if (type == Threshold::Type::Warning &&
+             bound == Threshold::Bound::Lower)
     {
         messageId += "SensorThresholdWarningLowGoingLow";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
@@ -152,7 +154,8 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
-    else if (type == Threshold::Type::Critical && bound == Threshold::Bound::Lower)
+    else if (type == Threshold::Type::Critical &&
+             bound == Threshold::Bound::Lower)
     {
         messageId += "SensorThresholdCriticalLowGoingLow";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
