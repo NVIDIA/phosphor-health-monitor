@@ -375,7 +375,7 @@ auto HealthMetricCollection::readStorage() -> bool
 #ifdef ENABLE_DEBUG
         debug("Reading storage metric for {PATH}", "PATH", config.path);
 #endif
-        if(metrics.find(config.name) == metrics.end())
+        if (metrics.find(config.name) == metrics.end())
         {
             // No metric object created for this config
             continue;
@@ -405,7 +405,7 @@ auto HealthMetricCollection::readEMMC() -> bool
 #ifdef ENABLE_DEBUG
         debug("Reading eMMC metric for {PATH}", "PATH", config.path);
 #endif
-        if(metrics.find(config.name) == metrics.end())
+        if (metrics.find(config.name) == metrics.end())
         {
             // No metric object created for this config
             continue;
@@ -450,7 +450,8 @@ auto HealthMetricCollection::readEMMC() -> bool
             }
             default:
             {
-                error("Unknown eMMC metric sub-type {TYPE}", "TYPE", config.subType);
+                error("Unknown eMMC metric sub-type {TYPE}", "TYPE",
+                      config.subType);
                 break;
             }
         }
@@ -619,16 +620,19 @@ void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
     {
         for (auto& config : configs)
         {
-            if(type == MetricIntf::Type::storage)
+            if (type == MetricIntf::Type::storage)
             {
                 // check directory path exists
                 if (!std::filesystem::is_directory(config.path))
                 {
-                    error("Path {PATH} does not exist for storage metric {NAME}",
-                          "PATH", config.path, "NAME", config.name);
+                    error(
+                        "Path {PATH} does not exist for storage metric {NAME}",
+                        "PATH", config.path, "NAME", config.name);
                     continue;
                 }
-            } else if (type == MetricIntf::Type::emmc) {
+            }
+            else if (type == MetricIntf::Type::emmc)
+            {
                 // check file path exists
                 if (!std::filesystem::is_regular_file(config.path))
                 {

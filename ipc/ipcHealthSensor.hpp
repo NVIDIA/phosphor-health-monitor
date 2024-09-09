@@ -40,7 +40,8 @@ class IPCHealthSensor
      */
     IPCHealthSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
                     boost::asio::io_context& io) :
-        bus(bus), ipcConfig(ipcConfig), timer(io)
+        bus(bus),
+        ipcConfig(ipcConfig), timer(io)
     {}
     /** @brief Initialize sensor, set default value and association */
     void initSensor();
