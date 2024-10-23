@@ -2,6 +2,8 @@
 
 #include "health_monitor.hpp"
 
+#include "health_metric.hpp"
+
 #include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/async.hpp>
 #include <xyz/openbmc_project/Inventory/Item/Bmc/common.hpp>
@@ -11,16 +13,10 @@ PHOSPHOR_LOG2_USING;
 
 namespace phosphor::health::monitor
 {
-
 using namespace phosphor::health::utils;
 
 auto HealthMonitor::startup() -> sdbusplus::async::task<>
 {
-    info("Waiting for system to boot complete for {DELAY} seconds", "DELAY",
-         BOOT_DELAY);
-    std::chrono::seconds sleep_duration(BOOT_DELAY);
-    co_await sdbusplus::async::sleep_for(ctx, sleep_duration);
-
     info("Creating Health Monitor with config size {SIZE}", "SIZE",
          configs.size());
 
@@ -56,7 +52,7 @@ auto HealthMonitor::run() -> sdbusplus::async::task<>
         {
             if (collection->getPendingConfigsCount() > 0)
             {
-                info("Pending Metrics found for {TYPE}", "TYPE", type);
+                debug("Pending Metrics found for {TYPE}", "TYPE", type);
                 collection->createPendingConfigs();
             }
         }
@@ -64,7 +60,6 @@ auto HealthMonitor::run() -> sdbusplus::async::task<>
             ctx, std::chrono::seconds(MONITOR_COLLECTION_INTERVAL));
     }
 }
-
 } // namespace phosphor::health::monitor
 
 using namespace phosphor::health::monitor;
@@ -75,7 +70,8 @@ int main()
     sdbusplus::async::context ctx;
     sdbusplus::server::manager_t manager{ctx, path};
     constexpr auto healthMonitorServiceName = "xyz.openbmc_project.HealthMon";
-
+    phosphor::health::metric::HealthMetric::setBootTime(
+        std::chrono::high_resolution_clock::now());
     info("Creating health monitor");
     using namespace phosphor::health::metric::config;
     // parseCommonConfig();

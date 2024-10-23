@@ -51,6 +51,7 @@ class HealthMetricCollectionTest : public ::testing::Test
                 }
             }
         }
+        MetricIntf::HealthMetric::setwaitForActionDelay(false);
     }
 
     void updateThreshold(ThresholdIntf::Bound bound, double value)
