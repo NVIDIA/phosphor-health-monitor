@@ -29,10 +29,11 @@ class HealthMetricCollection
         return pendingConfigs.size();
     }
     /** @brief Add the pending metric */
-    void addPendingConfig(std::string& configName)
+    void addPendingConfig(const std::string configName)
     {
         pendingConfigs.insert(configName);
     }
+
     /** @brief Remove the pending metric */
     void removePendingConfig(std::string& configName)
     {

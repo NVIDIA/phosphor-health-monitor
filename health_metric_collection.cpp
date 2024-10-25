@@ -568,35 +568,21 @@ void HealthMetricCollection::createPendingConfigs()
 
                     for (auto config : configs)
                     {
-                        if (config.name == "bmcweb")
-                        {
-                            info(
-                                "Checking for pending config for process {NAME}",
-                                "NAME", config.name);
-                            info(
-                                "Checking for pending config for binaryName {NAME}",
-                                "NAME", config.binaryName);
-                            for (auto pendingConfig : pendingConfigs)
-                            {
-                                info(
-                                    "Checking for pending config for pendingConfigs {NAME}",
-                                    "NAME", pendingConfig.c_str());
-                            }
-                        }
                         if (config.binaryName == processName &&
                             pendingConfigs.find(config.name) !=
                                 pendingConfigs.end())
                         {
-#ifdef ENABLE_DEBUG
                             // update pid of health metric object for this
                             // process
-                            debug(
-                                "Updating pid of health metric for process {NAME}",
-                                "NAME", config.name);
-#endif
                             info(
                                 "Updating pid of health metric for process {NAME} and pid {PID}",
                                 "NAME", config.name, "PID", pid);
+                            if (metrics.find(config.name) == metrics.end())
+                            {
+                                metrics[config.name] =
+                                    std::make_unique<MetricIntf::HealthMetric>(
+                                        bus, type, config, bmcPaths);
+                            }
                             metrics[config.name]->setPid(pid);
                             removePendingConfig(config.name);
                         }
@@ -703,6 +689,14 @@ void HealthMetricCollection::createProcessMetric(
         }
     }
     closedir(dir);
+    // if the process not yet started, add them to pending list
+    for (auto config : configs)
+    {
+        if (metrics.find(config.name) == metrics.end())
+        {
+            addPendingConfig(config.name);
+        }
+    }
 }
 
 } // namespace phosphor::health::metric::collection

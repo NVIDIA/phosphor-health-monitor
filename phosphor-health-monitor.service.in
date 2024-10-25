@@ -1,6 +1,7 @@
 [Unit]
 Description=BMC health monitoring
-After=obmc-mapper.target
+Wants=xyz.openbmc_project.EntityManager.service
+After=xyz.openbmc_project.EntityManager.service
 
 [Service]
 ExecStart=@bindir@/health-monitor
