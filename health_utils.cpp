@@ -180,12 +180,13 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
     // Signature is ssa{ss}
     method.append(messageId);
     method.append(level);
-    method.append(std::array<std::pair<std::string, std::string>, 3>(
+    method.append(std::array<std::pair<std::string, std::string>, 4>(
         {std::pair<std::string, std::string>({"REDFISH_MESSAGE_ID", messageId}),
          std::pair<std::string, std::string>(
              {"REDFISH_MESSAGE_ARGS", messageArgs}),
          std::pair<std::string, std::string>(
-             {"xyz.openbmc_project.Logging.Entry.Resolution", resolution})}));
+             {"xyz.openbmc_project.Logging.Entry.Resolution", resolution}),
+         std::pair<std::string, std::string>({"namespace", "Manager"})}));
     try
     {
         // A strict timeout for logging service to fail early and ensure
