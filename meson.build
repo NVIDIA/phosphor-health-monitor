@@ -50,7 +50,6 @@ subdir('ipc')
 
 log_rate_limit = get_option('log_rate_limit')
 boot_delay = get_option('boot_delay')
-install_data(sources : 'process_health_config.json', install_dir : '/etc/healthMon')
 install_data(sources : 'system_recovery_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'run_top.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')
 install_data(sources : 'system_warning_action.sh', install_dir : get_option('bindir'), install_mode : 'rwxr-xr-x')

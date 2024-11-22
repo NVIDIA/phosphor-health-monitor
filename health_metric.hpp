@@ -67,6 +67,17 @@ class HealthMetric : public MetricIntf
         return pid;
     }
 
+    /** @brief Set the action delay flag , used by CI unit */
+    static void setwaitForActionDelay(bool value);
+    /*Wait for the action delay*/
+    static bool waitForActionDelay();
+    /** @brief Set the boot time */
+    static void setBootTime(
+        std::chrono::time_point<std::chrono::high_resolution_clock> time)
+    {
+        bootTime = time;
+    }
+
   private:
     /** @brief Create a new health metric object */
     void create(const paths_t& bmcPaths);
@@ -103,6 +114,11 @@ class HealthMetric : public MetricIntf
     double lastNotifiedValue = 0;
     /** @brief Process ID for the metric */
     int pid = 0;
+    /** @brief boot time */
+    inline static std::chrono::time_point<std::chrono::high_resolution_clock>
+        bootTime;
+    /* @brief wait for action delay */
+    inline static bool waitForAction = true;
 };
 
 } // namespace phosphor::health::metric

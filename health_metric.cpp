@@ -268,7 +268,7 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
 
 void HealthMetric::checkThresholds(MValue value)
 {
-    if (!ThresholdIntf::value().empty())
+    if (!waitForActionDelay() && !ThresholdIntf::value().empty())
     {
         for (auto type : {Type::HardShutdown, Type::SoftShutdown,
                           Type::PerformanceLoss, Type::Critical, Type::Warning})
@@ -385,4 +385,24 @@ bool HealthMetric::checkWarningLogRateLimitWindow()
     }
     return false;
 }
+
+void HealthMetric::setwaitForActionDelay(bool value)
+{
+    waitForAction = value;
+}
+
+bool HealthMetric::waitForActionDelay()
+{
+    if (waitForAction)
+    {
+        std::chrono::duration<double> diff =
+            std::chrono::high_resolution_clock::now() - bootTime;
+        if (diff.count() > BOOT_DELAY)
+        {
+            waitForAction = false;
+        }
+    }
+    return waitForAction;
+}
+
 } // namespace phosphor::health::metric
