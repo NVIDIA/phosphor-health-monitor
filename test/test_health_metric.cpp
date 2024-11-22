@@ -43,6 +43,7 @@ class HealthMetricTest : public ::testing::Test
             {{ThresholdIntf::Type::Warning, ThresholdIntf::Bound::Upper},
              {.value = 80.0, .log = false, .target = ""}}};
         config.path = "";
+        HealthMetric::setwaitForActionDelay(false);
     }
 };
 
