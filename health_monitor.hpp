@@ -24,8 +24,7 @@ class HealthMonitor
     HealthMonitor(
         sdbusplus::async::context& ctx,
         std::function<ConfigIntf::HealthMetric::map_t()> configFunction) :
-        ctx(ctx),
-        configs(configFunction())
+        ctx(ctx), configs(configFunction())
     {
         ctx.spawn(startup());
     }
