@@ -80,8 +80,8 @@ void from_json(const json& j, Threshold& self)
 /** Deserialize a HealthMetric from JSON. */
 void from_json(const json& j, HealthMetric& self)
 {
-    self.windowSize = j.value("Window_size",
-                              HealthMetric::defaults::windowSize);
+    self.windowSize =
+        j.value("Window_size", HealthMetric::defaults::windowSize);
     self.hysteresis = j.value("Hysteresis", HealthMetric::defaults::hysteresis);
     // Path is only valid for storage
     self.path = j.value("Path", "");
@@ -109,8 +109,8 @@ void from_json(const json& j, HealthMetric& self)
 
         static constexpr auto keyDelimiter = "_";
         std::string typeStr = key.substr(0, key.find_first_of(keyDelimiter));
-        std::string boundStr = key.substr(key.find_last_of(keyDelimiter) + 1,
-                                          key.length());
+        std::string boundStr =
+            key.substr(key.find_last_of(keyDelimiter) + 1, key.length());
         self.thresholds.emplace(
             std::make_tuple(validThresholdTypes.at(typeStr),
                             validThresholdBounds.at(boundStr)),
@@ -192,8 +192,8 @@ auto getHealthMetricConfigs() -> HealthMetric::map_t
         config.name = name;
 
         auto subType = validSubTypes.find(name);
-        config.subType = (subType != validSubTypes.end() ? subType->second
-                                                         : SubType::NA);
+        config.subType =
+            (subType != validSubTypes.end() ? subType->second : SubType::NA);
 
         configs[type->second].emplace_back(std::move(config));
     }
@@ -324,8 +324,8 @@ auto getServiceMetricConfigs() -> HealthMetric::map_t
             subType = "Memory_Processes";
         }
         auto var = validSubTypes.find(subType);
-        config.subType = (var != validSubTypes.end() ? var->second
-                                                     : SubType::NA);
+        config.subType =
+            (var != validSubTypes.end() ? var->second : SubType::NA);
 
         configs[type->second].emplace_back(std::move(config));
     }

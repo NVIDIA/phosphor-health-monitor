@@ -15,8 +15,8 @@ namespace phosphor::health::metric
 
 using association_t = std::tuple<std::string, std::string, std::string>;
 
-auto HealthMetric::getPath(MType type, std::string name, SubType subType)
-    -> std::string
+auto HealthMetric::getPath(MType type, std::string name,
+                           SubType subType) -> std::string
 {
     std::string path;
     switch (subType)
@@ -59,8 +59,9 @@ auto HealthMetric::getPath(MType type, std::string name, SubType subType)
             static constexpr auto nameDelimiter = "_";
             auto processName = name.substr(name.find_last_of(nameDelimiter) + 1,
                                            name.length());
-            std::ranges::for_each(processName,
-                                  [](auto& c) { c = std::tolower(c); });
+            std::ranges::for_each(processName, [](auto& c) {
+                c = std::tolower(c);
+            });
             return std::string(BmcPath) + "/" + "cpu/processes" + "/" +
                    processName;
         }
@@ -69,8 +70,9 @@ auto HealthMetric::getPath(MType type, std::string name, SubType subType)
             static constexpr auto nameDelimiter = "_";
             auto processName = name.substr(name.find_last_of(nameDelimiter) + 1,
                                            name.length());
-            std::ranges::for_each(processName,
-                                  [](auto& c) { c = std::tolower(c); });
+            std::ranges::for_each(processName, [](auto& c) {
+                c = std::tolower(c);
+            });
             return std::string(BmcPath) + "/" + "memory/processes" + "/" +
                    processName;
         }
@@ -89,8 +91,9 @@ auto HealthMetric::getPath(MType type, std::string name, SubType subType)
                 static constexpr auto nameDelimiter = "_";
                 auto storageType = name.substr(
                     name.find_last_of(nameDelimiter) + 1, name.length());
-                std::ranges::for_each(storageType,
-                                      [](auto& c) { c = std::tolower(c); });
+                std::ranges::for_each(storageType, [](auto& c) {
+                    c = std::tolower(c);
+                });
                 return std::string(BmcPath) + "/" + PathIntf::storage + "/" +
                        storageType;
             }
@@ -285,8 +288,8 @@ auto HealthMetric::shouldNotify(MValue value) -> bool
     {
         return true;
     }
-    auto changed = std::abs((value.current - lastNotifiedValue) /
-                            lastNotifiedValue * 100.0);
+    auto changed = std::abs(
+        (value.current - lastNotifiedValue) / lastNotifiedValue * 100.0);
     if (changed >= config.hysteresis)
     {
         lastNotifiedValue = value.current;
@@ -312,8 +315,8 @@ void HealthMetric::update(MValue value)
         return;
     }
 
-    double average = (std::accumulate(history.begin(), history.end(), 0.0)) /
-                     history.size();
+    double average =
+        (std::accumulate(history.begin(), history.end(), 0.0)) / history.size();
     value.current = average;
 #ifdef ENABLE_info
     info("Health Metric: {METRIC} average value: {VALUE}", "METRIC",
