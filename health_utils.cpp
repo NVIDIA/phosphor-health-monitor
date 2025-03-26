@@ -22,10 +22,8 @@ void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
     {
         return;
     }
-    info("Starting systemd unit {UNIT} with resource {RESOURCE} path {PATH} "
-         "binaryname {BINARYNAME} usage {USAGE}",
-         "UNIT", sysdUnit, "RESOURCE", resource, "PATH", path, "BINARYNAME",
-         binaryname, "USAGE", usage);
+    info("Starting systemd unit {UNIT} with resource {RESOURCE}", "UNIT",
+         sysdUnit, "RESOURCE", resource);
     auto service = sysdUnit;
     std::string args;
     args += "\\x20";
@@ -33,16 +31,19 @@ void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
     args += "\\x20";
     if (!path.empty())
     {
+        info("paths={PATH}", "PATH", path);
         args += path;
         args += "\\x20";
     }
     if (!binaryname.empty())
     {
+        info("binaryname={BINARYNAME}", "BINARYNAME", binaryname);
         args += binaryname;
         args += "\\x20";
     }
     if (usage > 0)
     {
+        info("usage={USAGE}", "USAGE", usage);
         args += std::to_string(usage);
         args += "\\x20";
     }
