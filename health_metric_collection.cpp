@@ -38,14 +38,14 @@ auto HealthMetricCollection::readProcessCPU() -> bool
         int pid = metrics[config.name]->getPid();
         if (pid <= -1)
         {
-            error("Failed to get PID for process {NAME}", "NAME", config.name);
+            debug("Failed to get PID for process {NAME}", "NAME", config.name);
             continue;
         }
         std::string statFilePath = "/proc/" + std::to_string(pid) + "/stat";
         std::ifstream statFile(statFilePath);
         if (!statFile.is_open())
         {
-            error("Failed to open {PATH} for reading process CPU stats", "PATH",
+            debug("Failed to open {PATH} for reading process CPU stats", "PATH",
                   statFilePath);
             throw std::runtime_error(config.name);
         }
@@ -180,7 +180,7 @@ auto HealthMetricCollection::readProcessMemory() -> bool
         int pid = metrics[config.name]->getPid();
         if (pid <= 0)
         {
-            error("Failed to get PID for process {NAME}", "NAME", config.name);
+            debug("Failed to get PID for process {NAME}", "NAME", config.name);
             continue;
         }
         // Build the path to the statm file for the specified process ID
@@ -189,7 +189,7 @@ auto HealthMetricCollection::readProcessMemory() -> bool
         // Open the statm file for reading
         if (!statmFile.is_open())
         {
-            error("Failed to open {PATH} for reading process memory stats",
+            debug("Failed to open {PATH} for reading process memory stats",
                   "PATH", statmPath);
             throw std::runtime_error(config.name);
         }
@@ -503,7 +503,7 @@ void HealthMetricCollection::read()
             }
             catch (const std::exception& e)
             {
-                error(
+                debug(
                     "Exception occured while reading process CPU health metric for : {ERROR}",
                     "ERROR", e.what());
                 std::string configName = e.what();
@@ -519,7 +519,7 @@ void HealthMetricCollection::read()
             }
             catch (const std::exception& e)
             {
-                error(
+                debug(
                     "Exception occured while reading process Memory health metric for : {ERROR}",
                     "ERROR", e.what());
                 std::string configName = e.what();
