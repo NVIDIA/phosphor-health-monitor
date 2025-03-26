@@ -1,15 +1,13 @@
 #!/bin/bash
 
 ARGUMENT="$1"
-
+echo "ARGUMENT: $ARGUMENT"
 # Extract threshold and resource using space as the delimiter
 RESOURCE=$(echo "$ARGUMENT" | awk '{print $1}')
 STORAGEPATH=$(echo "$ARGUMENT" | awk '{print $2}')
 USAGE=$(echo "$ARGUMENT" | awk '{print $NF}')
 
-echo "Threshold: $THRESHOLD"
-echo "Resource: $STORAGEPATH"
-echo "Usage: $USAGE"
+[ ! -z "$RESOURCE" ] && echo "Resource: $RESOURCE"
 
 # Check for different cases based on threshold and resource
 if [[ "$RESOURCE" == "Storage_"* ]]; then
