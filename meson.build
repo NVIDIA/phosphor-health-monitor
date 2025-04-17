@@ -2,9 +2,7 @@ project(
     'phosphor-health-monitor',
     'cpp',
     version: '1.0',
-    default_options: [
-        'cpp_std=c++23',
-    ],
+    default_options: ['cpp_std=c++23'],
     meson_version: '>=1.1.1',
 )
 
@@ -18,7 +16,7 @@ base_deps = [
     phosphor_dbus_interfaces_dep,
     sdbusplus_dep,
     sdeventplus_dep,
-    nlohmann_json_dep
+    nlohmann_json_dep,
 ]
 
 executable(
@@ -30,11 +28,9 @@ executable(
         'health_metric_collection.cpp',
         'health_monitor.cpp',
     ],
-    dependencies: [
-        base_deps
-    ],
+    dependencies: [base_deps],
     install: true,
-    install_dir: get_option('bindir')
+    install_dir: get_option('bindir'),
 )
 
 executable(
@@ -74,47 +70,48 @@ systemd = dependency('systemd')
 conf_data = configuration_data()
 conf_data.set('bindir', get_option('prefix') / get_option('bindir'))
 configure_file(
-  input: 'phosphor-health-monitor.service.in',
-  output: 'phosphor-health-monitor.service',
-  configuration: conf_data,
-  install: true,
-  install_dir: systemd.get_variable('systemdsystemunitdir'))
+    input: 'phosphor-health-monitor.service.in',
+    output: 'phosphor-health-monitor.service',
+    configuration: conf_data,
+    install: true,
+    install_dir: systemd.get_variable('systemdsystemunitdir'),
+)
 
-  configure_file(
+configure_file(
   input: 'systemrecovery.service.in',
   output: 'HMSystemRecovery@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
   
-  configure_file(
+configure_file(
   input: 'systemwarning.service.in',
   output: 'HMSystemWarning@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
   
-  configure_file(
+configure_file(
   input: 'servicerecovery.service.in',
   output: 'HMServiceRecovery@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
   
-  configure_file(
+configure_file(
   input: 'servicewarning.service.in',
   output: 'HMServiceWarning@.service',
   configuration: conf_data,
   install: true,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
 
-  configure_file(
+configure_file(
   input: 'memory_error_injection.service.in',
   output: 'memory_error_injection.service',
   configuration: conf_data,
   install: false,
   install_dir: systemd.get_variable('systemdsystemunitdir'))
 
-  if get_option('tests').allowed()
-    subdir('test')
-  endif
+if get_option('tests').allowed()
+  subdir('test')
+endif

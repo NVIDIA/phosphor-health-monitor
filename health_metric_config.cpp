@@ -111,6 +111,7 @@ void from_json(const json& j, HealthMetric& self)
         std::string typeStr = key.substr(0, key.find_first_of(keyDelimiter));
         std::string boundStr =
             key.substr(key.find_last_of(keyDelimiter) + 1, key.length());
+
         self.thresholds.emplace(
             std::make_tuple(validThresholdTypes.at(typeStr),
                             validThresholdBounds.at(boundStr)),
@@ -355,7 +356,7 @@ auto to_string(Type t) -> std::string
     return details::reverse_map_search(config::validTypes, t);
 }
 
-// to_string specializaiton for SubType.
+// to_string specialization for SubType.
 auto to_string(SubType t) -> std::string
 {
     return details::reverse_map_search(config::validSubTypes, t);
