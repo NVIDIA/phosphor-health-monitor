@@ -131,7 +131,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         messageId += "SensorThresholdWarningHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
-        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Informational";
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
@@ -141,7 +141,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         messageId += "SensorThresholdCriticalHighGoingHigh";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
-        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Informational";
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
@@ -151,7 +151,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         messageId += "SensorThresholdWarningLowGoingLow";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
-        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Informational";
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
@@ -161,7 +161,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
         messageId += "SensorThresholdCriticalLowGoingLow";
         messageArgs = sensorName + "," + std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
-        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
+        messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Informational";
         resolution = "None";
         createRFLogEntry(bus, messageId, messageArgs, messageLevel, resolution);
     }
