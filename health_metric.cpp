@@ -204,8 +204,9 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
                 if (tConfig.log)
                 {
                     error(
-                        "ASSERT: Health Metric {METRIC} crossed {TYPE} upper threshold",
-                        "METRIC", config.name, "TYPE", type);
+                        "ASSERT: Health Metric {METRIC} crossed {TYPE} upper threshold {THRESHOLD} and current value is {VALUE}",
+                        "METRIC", config.name, "TYPE", type, "THRESHOLD",
+                        thresholdValue, "VALUE", value.current);
                     if ((type == Threshold::Type::Critical &&
                          checkCriticalLogRateLimitWindow()) ||
                         (type == Threshold::Type::Warning &&
