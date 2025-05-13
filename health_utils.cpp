@@ -52,7 +52,6 @@ void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
     auto p = service.find('@');
     if (p != std::string::npos)
         service.insert(p + 1, args);
-    info("Starting systemd unit {UNIT}", "UNIT", service);
     sdbusplus::message_t msg = bus.new_method_call(
         "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager", "StartUnit");
