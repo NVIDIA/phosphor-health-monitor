@@ -1,4 +1,5 @@
 option('tests', type: 'feature', description: 'Build tests')
+option('event_logging', type: 'feature', value: 'disabled', description: 'Enable or disable event logging ')
 
 # Variables
 option('monitor-collection-interval', type: 'integer', value: 10, description: 'The health monitor collection interval in seconds.',)
