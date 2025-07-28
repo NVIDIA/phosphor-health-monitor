@@ -23,8 +23,8 @@ std::shared_ptr<IPCHealthSensor> IPCHealthSensor::getIPCHealthSensor(
 {
     if (ipcConfig.name == "dbus")
     {
-        return std::make_shared<phosphor::ipc::DBusIpcSensor>(bus, ipcConfig,
-                                                              io);
+        return std::make_shared<phosphor::ipc::DBusIpcSensor>(
+            bus, ipcConfig, io);
     }
     return nullptr;
 }
@@ -69,11 +69,10 @@ void IPCHealthSensor::readSensordata()
     timer.async_wait(std::bind(&IPCHealthSensor::readSensordata, this));
 }
 
-void IPCHealthSensor::createThresholdLogEntry(const std::string& threshold,
-                                              const std::string& serviceName,
-                                              const std::string& proprtyName,
-                                              double value,
-                                              const double configThresholdValue)
+void IPCHealthSensor::createThresholdLogEntry(
+    const std::string& threshold, const std::string& serviceName,
+    const std::string& proprtyName, double value,
+    const double configThresholdValue)
 {
     std::string messageId = "OpenBMC.0.4.";
     std::string messageArgs{};
@@ -149,9 +148,8 @@ bool IPCHealthSensor::checkWarningLogRateLimitWindow()
 // This function is used to check the sensor threshold and log the required
 // message This is generic base class function overridden by derived class e.g.
 // DBusIpcSensor
-void IPCHealthSensor::checkSensorThreshold(const double value,
-                                           const std::string& serviceName,
-                                           struct ParamConfig cfg)
+void IPCHealthSensor::checkSensorThreshold(
+    const double value, const std::string& serviceName, struct ParamConfig cfg)
 {
     if (std::isfinite(cfg.criticalHigh) &&
         (cfg.operatorType == "greater_than") && (value > cfg.criticalHigh))
@@ -220,12 +218,12 @@ void IPCHealthSensor::createRFLogEntry(const std::string& messageId,
     // Make call to DBus Debug Service to create log entry
     connObject->async_method_call(
         [](const boost::system::error_code ec) {
-        if (ec)
-        {
-            lg2::error("Phosphor logging Create resp_handler got error ");
-            return;
-        }
-    },
+            if (ec)
+            {
+                lg2::error("Phosphor logging Create resp_handler got error ");
+                return;
+            }
+        },
         "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
         "xyz.openbmc_project.Logging.Create", "Create", messageId, level,
         addData);
@@ -259,12 +257,12 @@ void IPCHealthSensor::startUnit(const std::string& sysdUnit,
         service.insert(p + 1, args);
     connObject->async_method_call(
         [](const boost::system::error_code ec) {
-        if (ec)
-        {
-            lg2::error("StartUnit resp_handler got error ");
-            return;
-        }
-    },
+            if (ec)
+            {
+                lg2::error("StartUnit resp_handler got error ");
+                return;
+            }
+        },
         "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager", "StartUnit", service, "replace");
 }

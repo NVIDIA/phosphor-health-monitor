@@ -94,9 +94,9 @@ auto HealthMetricCollection::readProcessCPU() -> bool
             preActiveTime[pid] = 0;
         }
 
-        elapsedTime = (t.tv_sec - preElapsedTime[pid].first) +
-                      (float)(t.tv_usec - preElapsedTime[pid].second) /
-                          1000000.0;
+        elapsedTime =
+            (t.tv_sec - preElapsedTime[pid].first) +
+            (float)(t.tv_usec - preElapsedTime[pid].second) / 1000000.0;
 
         preElapsedTime[pid] = std::make_pair(t.tv_sec, t.tv_usec);
         debug("elapsedTime is {ELAPSED_TIME}", "ELAPSED_TIME", elapsedTime);
@@ -116,8 +116,8 @@ auto HealthMetricCollection::readProcessCPU() -> bool
         }
 
         // Calculate the CPU usage percentage
-        double cpuUsagePercentage = (activeTimeDiff / cpus) * (100 / hertz) /
-                                    elapsedTime;
+        double cpuUsagePercentage =
+            (activeTimeDiff / cpus) * (100 / hertz) / elapsedTime;
 #ifdef ENABLE_DEBUG
         debug("CPU percentage for process {PID} is {CPU_PERCENTAGE}", "PID",
               pid, "CPU_PERCENTAGE", cpuUsagePercentage);
@@ -203,8 +203,8 @@ auto HealthMetricCollection::readProcessMemory() -> bool
         {
             throw std::runtime_error(config.name);
         }
-        double memoryUsagePercentage = static_cast<double>(memoryUsageKB) /
-                                       totalMemoryKB * 100.0;
+        double memoryUsagePercentage =
+            static_cast<double>(memoryUsageKB) / totalMemoryKB * 100.0;
         statmFile.close();
 #ifdef ENABLE_DEBUG
         debug("Memory percentage for process {PID} is {MEMORY_PERCENTAGE}",

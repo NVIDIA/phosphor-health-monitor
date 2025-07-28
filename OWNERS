@@ -33,7 +33,7 @@
 
 owners:
 - patrick@stwcx.xyz
-- vijaykhemkalinux@gmail.com
+- paligill@gmail.com
 
 reviewers:
 - paligill@gmail.com
@@ -44,9 +44,6 @@ openbmc:
 - name: Patrick Williams
   email: patrick@stwcx.xyz
   discord: stwcx
-- name: Vijay Khemka
-  email: vijaykhemkalinux@gmail.com
-  discord: vijay
 - name: Jagpal Singh Gill
   email: paligill@gmail.com
   discord: jagpalgill

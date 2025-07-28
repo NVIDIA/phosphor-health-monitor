@@ -56,66 +56,67 @@ void DBusIpcSensor::readSensor()
     connObject->async_method_call(
         [this](const boost::system::error_code ec,
                std::map<std::string, std::variant<PeerAccountingType>>& resp) {
-        asyncResp.clear();
-        if (ec)
-        {
-            // TODO: Handle for specific error code
-            lg2::error("GetStats resp_handler got error");
-            return;
-        }
-        // GetStats returns a{sv} where v variant is of type a(sa{sv}a{su})
-        // Here stat is e.g. org.bus1.DBus.Debug.Stats.PeerAccounting or
-        // "org.bus1.DBus.Debug.Stats.UserAccounting" and type is a tuple of
-        // service name, DictionaryOfStringAndVariant and
-        // DictionaryOfStringAndUnsigned
-        for (auto& [stat, type] : resp)
-        {
-            if (stat != "org.bus1.DBus.Debug.Stats.PeerAccounting")
+            asyncResp.clear();
+            if (ec)
             {
-                continue;
+                // TODO: Handle for specific error code
+                lg2::error("GetStats resp_handler got error");
+                return;
             }
-
-            for (auto& tuple : std::get<PeerAccountingType>(type))
+            // GetStats returns a{sv} where v variant is of type a(sa{sv}a{su})
+            // Here stat is e.g. org.bus1.DBus.Debug.Stats.PeerAccounting or
+            // "org.bus1.DBus.Debug.Stats.UserAccounting" and type is a tuple of
+            // service name, DictionaryOfStringAndVariant and
+            // DictionaryOfStringAndUnsigned
+            for (auto& [stat, type] : resp)
             {
-                std::string connectionName = std::get<0>(tuple);
-                if (std::get<2>(tuple).size() > 0)
+                if (stat != "org.bus1.DBus.Debug.Stats.PeerAccounting")
                 {
-                    // reading a{su} type 'data' type is
-                    // std::map<std::string, unsigned int>
-                    auto& data = std::get<2>(tuple);
-                    std::vector<
-                        std::pair<std::string,
-                                  std::variant<long int, double, std::string>>>
-                        stats;
-                    // statistics is configured with <"Outgoingbytes",
-                    // int>  and <"Incomingbytes", int>
-                    for (auto& configuredStat : statistics)
+                    continue;
+                }
+
+                for (auto& tuple : std::get<PeerAccountingType>(type))
+                {
+                    std::string connectionName = std::get<0>(tuple);
+                    if (std::get<2>(tuple).size() > 0)
                     {
-                        // Here dbus return type as 'a{su}' therefore
-                        // 'data' type is std::map<std::string, unsigned
-                        // int> finding the key in the map
-                        auto it = data.find(configuredStat.first);
-                        if (it != data.end())
+                        // reading a{su} type 'data' type is
+                        // std::map<std::string, unsigned int>
+                        auto& data = std::get<2>(tuple);
+                        std::vector<std::pair<
+                            std::string,
+                            std::variant<long int, double, std::string>>>
+                            stats;
+                        // statistics is configured with <"Outgoingbytes",
+                        // int>  and <"Incomingbytes", int>
+                        for (auto& configuredStat : statistics)
                         {
-                            long int value = static_cast<long int>(it->second);
-                            stats.push_back(
-                                std::make_pair(configuredStat.first, value));
+                            // Here dbus return type as 'a{su}' therefore
+                            // 'data' type is std::map<std::string, unsigned
+                            // int> finding the key in the map
+                            auto it = data.find(configuredStat.first);
+                            if (it != data.end())
+                            {
+                                long int value =
+                                    static_cast<long int>(it->second);
+                                stats.push_back(std::make_pair(
+                                    configuredStat.first, value));
+                            }
                         }
+                        // Insert the service name and stats into the map
+                        asyncResp.insert(std::make_pair(connectionName, stats));
+                        stats.clear();
                     }
-                    // Insert the service name and stats into the map
-                    asyncResp.insert(std::make_pair(connectionName, stats));
-                    stats.clear();
+                }
+                if (asyncResp.size() > 0)
+                {
+                    // storing asyncResp as class member to avoid copy
+                    // elison Therefore no need to copy the asyncResp map to
+                    // process the data
+                    processdata();
                 }
             }
-            if (asyncResp.size() > 0)
-            {
-                // storing asyncResp as class member to avoid copy
-                // elison Therefore no need to copy the asyncResp map to
-                // process the data
-                processdata();
-            }
-        }
-    },
+        },
         "org.freedesktop.DBus", "/org/freedesktop/DBus",
         "org.freedesktop.DBus.Debug.Stats", "GetStats");
 }
@@ -177,26 +178,32 @@ void DBusIpcSensor::processdata()
                                 [](double acc,
                                    const std::variant<long int, double>& val)
                                     -> double {
-                                // Visit the variant to handle each possible
-                                // type
-                                return acc + std::visit(
-                                                 [](auto&& arg) -> double {
-                                    using T = std::decay_t<decltype(arg)>;
-                                    if constexpr (std::is_same_v<T, long int>)
-                                    {
-                                        // If the variant holds a numeric type,
-                                        // add it to the accumulator
-                                        return arg;
-                                    }
-                                    else
-                                    {
-                                        // If the variant holds a non-numeric
-                                        // type, add zero
-                                        return 0;
-                                    }
-                                },
-                                                 val);
-                            });
+                                    // Visit the variant to handle each possible
+                                    // type
+                                    return acc +
+                                           std::visit(
+                                               [](auto&& arg) -> double {
+                                                   using T = std::decay_t<
+                                                       decltype(arg)>;
+                                                   if constexpr (std::is_same_v<
+                                                                     T,
+                                                                     long int>)
+                                                   {
+                                                       // If the variant holds a
+                                                       // numeric type, add it
+                                                       // to the accumulator
+                                                       return arg;
+                                                   }
+                                                   else
+                                                   {
+                                                       // If the variant holds a
+                                                       // non-numeric type, add
+                                                       // zero
+                                                       return 0;
+                                                   }
+                                               },
+                                               val);
+                                });
                             avgValue = avgValue / ipcConfig.windowSize;
                             if (avgValue < it->warningHigh)
                             {
@@ -240,55 +247,58 @@ void DBusIpcSensor::convertConnectionToUnit(const std::string& connName,
     connObject->async_method_call(
         [this, &connObject, callback = std::forward<CallbackFn>(callback)](
             const boost::system::error_code ec, unsigned int pid) {
-        if (ec)
-        {
-            // TODO: Handle for specific error code
-            lg2::error("GetConnectionUnixProcessID resp_handler got error");
-            return;
-        }
-        connObject->async_method_call(
-            [this, callback = std::move(callback),
-             pid](const boost::system::error_code ec,
-                  sdbusplus::message::object_path path) {
             if (ec)
             {
                 // TODO: Handle for specific error code
-                lg2::error("GetUnitByPID resp_handler got error ");
+                lg2::error("GetConnectionUnixProcessID resp_handler got error");
                 return;
             }
-            std::string unit(path);
-            if (unit.empty())
-            {
-                lg2::error("Not able to find unit name for PID: {PID}", "PID",
-                           pid);
-                return;
-            }
-            // e.g. unit obect path looks like
-            // /org/freedesktop/systemd1/unit/phosphor_2dcertificate_2dmanager_40bmcweb_2eservice
-            std::filesystem::path p(unit);
-            std::string unitName = p.filename();
-            // Replace encoded characters in the unit name
-            // e.g. phosphor_2dcertificate_2dmanager_40bmcweb_2eservice
-            unitName = std::regex_replace(unitName, std::regex("_2e"), ".");
-            unitName = std::regex_replace(unitName, std::regex("_2d"), "-");
-            unitName = std::regex_replace(unitName, std::regex("_5f"), "_");
-            unitName = std::regex_replace(unitName, std::regex("_40"), "@");
-            lg2::info("Unit name: {UNIT}", "UNIT", unitName);
-            callback(unitName);
+            connObject->async_method_call(
+                [this, callback = std::move(callback),
+                 pid](const boost::system::error_code ec,
+                      sdbusplus::message::object_path path) {
+                    if (ec)
+                    {
+                        // TODO: Handle for specific error code
+                        lg2::error("GetUnitByPID resp_handler got error ");
+                        return;
+                    }
+                    std::string unit(path);
+                    if (unit.empty())
+                    {
+                        lg2::error("Not able to find unit name for PID: {PID}",
+                                   "PID", pid);
+                        return;
+                    }
+                    // e.g. unit obect path looks like
+                    // /org/freedesktop/systemd1/unit/phosphor_2dcertificate_2dmanager_40bmcweb_2eservice
+                    std::filesystem::path p(unit);
+                    std::string unitName = p.filename();
+                    // Replace encoded characters in the unit name
+                    // e.g. phosphor_2dcertificate_2dmanager_40bmcweb_2eservice
+                    unitName =
+                        std::regex_replace(unitName, std::regex("_2e"), ".");
+                    unitName =
+                        std::regex_replace(unitName, std::regex("_2d"), "-");
+                    unitName =
+                        std::regex_replace(unitName, std::regex("_5f"), "_");
+                    unitName =
+                        std::regex_replace(unitName, std::regex("_40"), "@");
+                    lg2::info("Unit name: {UNIT}", "UNIT", unitName);
+                    callback(unitName);
+                },
+                "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager", "GetUnitByPID", pid);
         },
-            "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-            "org.freedesktop.systemd1.Manager", "GetUnitByPID", pid);
-    },
         "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
         "GetConnectionUnixProcessID", connName);
 }
 
 // Callback function to handle logging and start unit
-void DBusIpcSensor::logAndExecuteAction(const std::string connName,
-                                        const std::string thresholdType,
-                                        struct ParamConfig paramConfig,
-                                        const double value,
-                                        const std::string unitName)
+void DBusIpcSensor::logAndExecuteAction(
+    const std::string connName, const std::string thresholdType,
+    struct ParamConfig paramConfig, const double value,
+    const std::string unitName)
 {
     using ConnKeyType = std::pair<std::string, std::string>;
     ConnKeyType connKey = std::make_pair(connName, paramConfig.key);
@@ -360,9 +370,9 @@ void DBusIpcSensor::checkSensorThreshold(const double value,
 
         if (!criticalLogStatus)
         {
-            auto callback = std::bind_front(&DBusIpcSensor::logAndExecuteAction,
-                                            this, connName, "critical",
-                                            paramConfig, value);
+            auto callback =
+                std::bind_front(&DBusIpcSensor::logAndExecuteAction, this,
+                                connName, "critical", paramConfig, value);
             convertConnectionToUnit(connName, callback);
         }
     }
@@ -386,9 +396,9 @@ void DBusIpcSensor::checkSensorThreshold(const double value,
 
         if (!warningLogStatus)
         {
-            auto callback = std::bind_front(&DBusIpcSensor::logAndExecuteAction,
-                                            this, connName, "warning",
-                                            paramConfig, value);
+            auto callback =
+                std::bind_front(&DBusIpcSensor::logAndExecuteAction, this,
+                                connName, "warning", paramConfig, value);
             convertConnectionToUnit(connName, callback);
         }
     }
