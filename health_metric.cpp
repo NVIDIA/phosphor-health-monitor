@@ -215,10 +215,12 @@ void HealthMetric::checkThreshold(Type type, Bound bound, MValue value)
                         (type == Threshold::Type::Warning &&
                          checkWarningLogRateLimitWindow()))
                     {
-                        std::string path = "";
+                        std::string path;
+#ifdef EVENT_LOGGING
                         phosphor::health::utils::createThresholdLogEntry(
                             bus, type, bound, config.name, value.current,
                             thresholdValue);
+#endif
                         if (this->type ==
                             phosphor::health::metric::Type::processCPU)
                         {
