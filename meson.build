@@ -18,6 +18,9 @@ base_deps = [
     sdeventplus_dep,
     nlohmann_json_dep,
 ]
+if get_option('event_logging').allowed()
+    add_project_arguments('-DEVENT_LOGGING', language:'cpp')
+endif
 
 executable(
     'health-monitor',
