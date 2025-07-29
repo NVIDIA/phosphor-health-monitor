@@ -44,9 +44,9 @@ class IPCHealthSensor
     {}
     /** @brief Initialize sensor, set default value and association */
     void initSensor();
-    static std::shared_ptr<IPCHealthSensor>
-        getIPCHealthSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
-                           boost::asio::io_context& io);
+    static std::shared_ptr<IPCHealthSensor> getIPCHealthSensor(
+        sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
+        boost::asio::io_context& io);
 
     /** @brief Check Sensor threshold and create log  and take action*/
     virtual void checkSensorThreshold(const double value,

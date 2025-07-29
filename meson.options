@@ -1,7 +1,22 @@
 option('tests', type: 'feature', description: 'Build tests')
-option('event_logging', type: 'feature', value: 'disabled', description: 'Enable or disable event logging ')
+option(
+    'event_logging',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Enable or disable event logging ',
+)
 
 # Variables
-option('monitor-collection-interval', type: 'integer', value: 10, description: 'The health monitor collection interval in seconds.',)
-option('log_rate_limit', type : 'integer', value : 300, description : 'Log rate limit')
-option('boot_delay', type : 'integer', value : 600, description : 'Boot delay')
+option(
+    'monitor-collection-interval',
+    type: 'integer',
+    value: 10,
+    description: 'The health monitor collection interval in seconds.',
+)
+option(
+    'log_rate_limit',
+    type: 'integer',
+    value: 300,
+    description: 'Log rate limit',
+)
+option('boot_delay', type: 'integer', value: 600, description: 'Boot delay')
