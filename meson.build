@@ -103,7 +103,7 @@ configure_file(
     output: 'phosphor-health-monitor.service',
     configuration: conf_data,
     install: true,
-    install_dir: systemd.get_variable('systemdsystemunitdir'),
+    install_dir: systemd.get_variable('systemd_system_unit_dir'),
 )
 
 configure_file(
