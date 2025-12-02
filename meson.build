@@ -22,6 +22,14 @@ if get_option('event_logging').allowed()
     add_project_arguments('-DEVENT_LOGGING', language: 'cpp')
 endif
 
+# NVIDIA platform error logging - disabled by default
+health_monitor_deps = base_deps
+if get_option('nvidia-platform-error-logging').allowed()
+    add_project_arguments('-DNVIDIA_PLATFORM_ERROR_LOGGING', language: 'cpp')
+    subdir('device-manager')
+    health_monitor_deps += device_manager_dep
+endif
+
 executable(
     'health-monitor',
     [
@@ -31,7 +39,7 @@ executable(
         'health_metric_collection.cpp',
         'health_monitor.cpp',
     ],
-    dependencies: [base_deps],
+    dependencies: health_monitor_deps,
     install: true,
     install_dir: get_option('bindir'),
 )

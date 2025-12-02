@@ -20,3 +20,9 @@ option(
     description: 'Log rate limit',
 )
 option('boot_delay', type: 'integer', value: 600, description: 'Boot delay')
+option(
+    'nvidia-platform-error-logging',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Enable NVIDIA platform error logging and device status management',
+)
