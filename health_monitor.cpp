@@ -2,6 +2,9 @@
 
 #include "health_monitor.hpp"
 
+#ifdef NVIDIA_PLATFORM_ERROR_LOGGING
+#include "device-manager/mctp_interface.hpp"
+#endif
 #include "health_metric.hpp"
 
 #include <phosphor-logging/lg2.hpp>
@@ -82,6 +85,12 @@ int main()
     std::function<HealthMetric::map_t()> srvcConfigFunction =
         getServiceMetricConfigs;
     HealthMonitor serviceMonitor(ctx, srvcConfigFunction);
+
+#ifdef NVIDIA_PLATFORM_ERROR_LOGGING
+    // Initialize MCTP monitoring for device error clearing
+    info("Initializing MCTP device error clearing");
+    phosphor::device::manager::MCTPInterface mctpMonitor(ctx.get_bus());
+#endif
 
     ctx.request_name(healthMonitorServiceName);
 
