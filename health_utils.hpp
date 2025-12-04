@@ -30,6 +30,11 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
                       const std::string& messageArgs, const std::string& level,
                       const std::string& resolution);
 
+/* Create a log entry in the RFLog */
+void asyncCreateRFLogEntry(
+    const std::string& messageID, const std::string& messageArgs,
+    const std::string& messageLevel, const std::string& resolution,
+    const std::string& logNamespace = "");
 /** @brief Check if a string contains only digits */
 bool containsOnlyDigits(const std::string& str);
 

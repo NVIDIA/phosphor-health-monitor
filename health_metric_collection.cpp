@@ -508,6 +508,8 @@ void HealthMetricCollection::read()
                     "ERROR", e.what());
                 std::string configName = e.what();
                 addPendingConfig(configName);
+                // create RF log entry for the service name
+                handleServiceName(configName);
             }
             break;
         }
@@ -699,4 +701,26 @@ void HealthMetricCollection::createProcessMetric(
     }
 }
 
+void HealthMetricCollection::handleServiceName(const std::string& serviceName)
+{
+    info("Handling service name {SERVICE_NAME}", "SERVICE_NAME", serviceName);
+    // create RF log entry for the restart reason
+    std::string binaryName = serviceName.substr(serviceName.find("_") + 1);
+
+    if (binaryName == "pldmd")
+    {
+        phosphor::health::utils::asyncCreateRFLogEntry(
+            "OpenBMC.0.5.ServiceRestart", binaryName,
+            "xyz.openbmc_project.Logging.Entry.Level.Critical", "none",
+            "FWUpdate");
+    }
+    else
+    {
+        info("NON PLDMD service name {SERVICE_NAME}", "SERVICE_NAME",
+             serviceName);
+        phosphor::health::utils::asyncCreateRFLogEntry(
+            "OpenBMC.0.5.ServiceRestart", binaryName,
+            "xyz.openbmc_project.Logging.Entry.Level.Critical", "none");
+    }
+}
 } // namespace phosphor::health::metric::collection

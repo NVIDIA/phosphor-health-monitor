@@ -64,6 +64,8 @@ class HealthMetricCollection
     auto readProcessMemory() -> bool;
     /** @brief Calculate the total memory in KB */
     long long calculateTotalMemory();
+    /** @brief Handle the service name */
+    void handleServiceName(const std::string& serviceName);
     /** @brief D-Bus bus connection */
     sdbusplus::bus_t& bus;
     /** @brief Metric type */

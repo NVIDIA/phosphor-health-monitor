@@ -1,5 +1,7 @@
 #include "health_utils.hpp"
 
+#include "ipc/asio_connection.hpp"
+
 #include <dirent.h>
 
 #include <phosphor-logging/lg2.hpp>
@@ -170,6 +172,7 @@ void createThresholdLogEntry(sdbusplus::bus_t& bus, Threshold::Type& type,
               "TRESHOLD", type);
     }
 }
+
 void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
                       const std::string& messageArgs, const std::string& level,
                       const std::string& resolution)
@@ -199,6 +202,51 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
     {
         error("Failed to create log entry, exception:{ERROR}", "ERROR", e);
     }
+}
+
+void asyncCreateRFLogEntry(
+    const std::string& messageID, const std::string& messageArgs,
+    const std::string& messageLevel, const std::string& resolution,
+    const std::string& logNamespace)
+{
+    auto& connObject = phosphor::ipc::AsioConnection::getAsioConnection();
+    if (connObject == nullptr)
+    {
+        error("Connection object is null");
+        return;
+    }
+
+    std::map<std::string, std::string> addData;
+    addData["REDFISH_MESSAGE_ID"] = messageID;
+
+    if (!messageArgs.empty())
+    {
+        addData["REDFISH_MESSAGE_ARGS"] = messageArgs;
+    }
+
+    if (!resolution.empty())
+    {
+        addData["xyz.openbmc_project.Logging.Entry.Resolution"] = resolution;
+    }
+
+    if (!logNamespace.empty())
+    {
+        addData["namespace"] = logNamespace;
+    }
+
+    connObject->async_method_call(
+        [](boost::system::error_code ec) {
+            if (ec)
+            {
+                error("error while logging message registry: ", "ERROR_MESSAGE",
+                      ec.message());
+                return;
+            }
+        },
+        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+        "xyz.openbmc_project.Logging.Create", "Create", messageID, messageLevel,
+        addData);
+    return;
 }
 
 } // namespace phosphor::health::utils
