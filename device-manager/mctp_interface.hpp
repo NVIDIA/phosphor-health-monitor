@@ -41,6 +41,12 @@ class MCTPInterface
     void handleInterfacesAdded(sdbusplus::message_t& msg);
 
     /**
+     * @brief Handler for MCTP InterfacesRemoved signals
+     * @param msg D-Bus message containing the signal data
+     */
+    void handleInterfacesRemoved(sdbusplus::message_t& msg);
+
+    /**
      * @brief Extract EID from MCTP D-Bus object path
      * @param objectPath MCTP endpoint object path
      * @return Extracted EID value, or 0 if parsing fails
@@ -52,6 +58,9 @@ class MCTPInterface
 
     /** @brief Match for MCTP InterfacesAdded signals */
     std::unique_ptr<sdbusplus::bus::match_t> interfacesAddedMatch;
+
+    /** @brief Match for MCTP InterfacesRemoved signals */
+    std::unique_ptr<sdbusplus::bus::match_t> interfacesRemovedMatch;
 };
 
 } // namespace phosphor::device::manager
