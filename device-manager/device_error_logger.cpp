@@ -63,4 +63,40 @@ void DeviceErrorLogger::clearDeviceErrors(sdbusplus::bus_t& bus, uint8_t eid)
     }
 }
 
+void DeviceErrorLogger::commitPhysicalInterfaceError(
+    uint8_t eid, const std::string& deviceName)
+{
+    try
+    {
+        using namespace nv::lg2;
+
+        // Use physical interface absent error code
+        int64_t errorCode = ErrorCode::PhysicalInterface::ABSENT;
+        // Fallback to EID if device name is empty
+        std::string name =
+            deviceName.empty() ? ("EID_" + std::to_string(eid)) : deviceName;
+
+        std::string errorMessage =
+            "Device was not discovered on the USB physical interface";
+        std::string resolution =
+            "Retry firmware update operation, if problem persists, follow FW upgrade recovery flow.";
+
+        std::map<std::string, std::string> additionalData = {
+            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceErrorsDetected"},
+            {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
+            {"REDFISH_RESOLUTION", resolution},
+            {"REDFISH_SEVERITY", "Critical"},
+            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+
+        CommitDeviceError(eid, errorCode, ErrorClass::PhysicalInterface,
+                          additionalData);
+    }
+    catch (const std::exception& e)
+    {
+        lg2::error(
+            "Exception while committing Physical Interface error for EID {EID}: {ERROR}",
+            "EID", eid, "ERROR", e.what());
+    }
+}
+
 } // namespace phosphor::device::manager

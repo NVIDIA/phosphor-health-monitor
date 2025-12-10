@@ -1,9 +1,12 @@
 #include "mctp_interface.hpp"
 
 #include "device_error_logger.hpp"
+#include "device_manager.hpp"
+#include "physical_interface_check.hpp"
 
 #include <phosphor-logging/lg2.hpp>
 
+#include <algorithm>
 #include <filesystem>
 
 namespace phosphor::device::manager
@@ -22,6 +25,15 @@ MCTPInterface::MCTPInterface(sdbusplus::bus_t& bus) : bus(bus)
                 sdbusplus::bus::match::rules::sender(MCTP_SERVICE),
             [this](sdbusplus::message_t& msg) { handleInterfacesAdded(msg); });
 
+        // Monitor MCTP InterfacesRemoved signals for endpoint loss
+        interfacesRemovedMatch = std::make_unique<sdbusplus::bus::match_t>(
+            bus,
+            sdbusplus::bus::match::rules::interfacesRemoved() +
+                sdbusplus::bus::match::rules::sender(MCTP_SERVICE),
+            [this](sdbusplus::message_t& msg) {
+                handleInterfacesRemoved(msg);
+            });
+
         lg2::info("MCTP interface monitoring initialized successfully");
     }
     catch (const std::exception& e)
@@ -36,8 +48,6 @@ void MCTPInterface::handleInterfacesAdded(sdbusplus::message_t& msg)
 {
     try
     {
-        lg2::info("Received MCTP InterfacesAdded signal");
-
         // Check if message is valid before reading
         if (msg.is_method_error())
         {
@@ -57,10 +67,6 @@ void MCTPInterface::handleInterfacesAdded(sdbusplus::message_t& msg)
 
         // Read the D-Bus message
         msg.read(objectPath, interfaces);
-
-        lg2::info(
-            "Successfully parsed MCTP signal for path: {PATH} with {COUNT} interfaces",
-            "PATH", objectPath.str, "COUNT", interfaces.size());
 
         // Check if this is an MCTP Endpoint interface
         if (interfaces.find(MCTP_ENDPOINT_INTERFACE) != interfaces.end())
@@ -95,6 +101,64 @@ void MCTPInterface::handleInterfacesAdded(sdbusplus::message_t& msg)
     catch (const std::exception& e)
     {
         lg2::error("Error handling MCTP InterfacesAdded signal: {ERROR}",
+                   "ERROR", e.what());
+    }
+}
+
+void MCTPInterface::handleInterfacesRemoved(sdbusplus::message_t& msg)
+{
+    try
+    {
+        // Check if message is valid before reading
+        if (msg.is_method_error())
+        {
+            lg2::warning("MCTP InterfacesRemoved signal contains method error");
+            return;
+        }
+
+        sdbusplus::message::object_path objectPath;
+        std::vector<std::string> interfaces;
+
+        // Read the D-Bus message
+        msg.read(objectPath, interfaces);
+
+        // Check if MCTP Endpoint interface was removed
+        auto it = std::find(interfaces.begin(), interfaces.end(),
+                            MCTP_ENDPOINT_INTERFACE);
+        if (it != interfaces.end())
+        {
+            uint8_t eid = extractEIDFromPath(objectPath.str);
+            if (eid != 0)
+            {
+                lg2::info("MCTP endpoint removed: {OBJECT_PATH}, EID: {EID}",
+                          "OBJECT_PATH", objectPath.str, "EID", eid);
+
+                auto it = devicesByEID.find(eid);
+                if (it != devicesByEID.end())
+                {
+                    lg2::info(
+                        "Checking physical interface for removed MCTP endpoint: {NAME} (EID {EID})",
+                        "NAME", it->second->name, "EID", eid);
+                    physicalInterfaceCheck(*it->second);
+                }
+                else
+                {
+                    lg2::warning(
+                        "No device found for removed MCTP endpoint EID {EID}",
+                        "EID", eid);
+                }
+            }
+        }
+    }
+    catch (const sdbusplus::exception_t& e)
+    {
+        lg2::error(
+            "D-Bus error handling MCTP InterfacesRemoved signal: {ERROR}",
+            "ERROR", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        lg2::error("Error handling MCTP InterfacesRemoved signal: {ERROR}",
                    "ERROR", e.what());
     }
 }
