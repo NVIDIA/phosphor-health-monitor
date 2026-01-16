@@ -88,9 +88,9 @@ int main()
 
 #ifdef NVIDIA_PLATFORM_ERROR_LOGGING
     // Initialize comprehensive device monitoring (includes MCTP endpoint
-    // monitoring)
+    // monitoring and USB hotplug monitoring)
     info("Initializing device monitoring and verification");
-    phosphor::device::manager::DeviceManager deviceManager(ctx.get_bus());
+    phosphor::device::manager::DeviceManager deviceManager(ctx);
 #endif
 
     ctx.request_name(healthMonitorServiceName);

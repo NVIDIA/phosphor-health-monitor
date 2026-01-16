@@ -2,10 +2,11 @@
 
 #include "device_node.hpp"
 
+#include <libusb.h>
+
+#include <sdbusplus/async.hpp>
+
 #include <cstdint>
-#include <memory>
-#include <optional>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -13,110 +14,114 @@ namespace phosphor::device::manager
 {
 
 /**
- * @brief USB interface specification
- * Format: "usb1:0x0955:0xcf11:1.1.1.1"
- * Fields: protocol+bus:VID:PID:portPath
+ * @brief Information about a USB device for hotplug monitoring
  */
-struct USBInterface
+struct USBDeviceInfo
 {
-    std::string protocolBus; // "usb1"
-    uint8_t busNumber;       // Extracted bus number (1 from "usb1")
+    uint8_t busNumber;
     uint16_t vid;
     uint16_t pid;
     std::vector<uint8_t> portPath;
+    uint8_t eid;
+    std::string deviceName;
 };
 
 /**
- * @brief Base class for physical interface checking
+ * @brief USB hotplug monitor using libusb hotplug API
+ *
+ * Monitors USB device removal events and logs errors when configured
+ * devices are physically disconnected. Uses a single global callback
+ * for all removal events and filters against configured devices.
  */
-class PhysicalInterfaceChecker
+class USBHotplugMonitor
 {
   public:
-    virtual ~PhysicalInterfaceChecker() = default;
+    /**
+     * @brief Construct USB hotplug monitor
+     * @param ctx sdbusplus async context for event loop integration
+     */
+    explicit USBHotplugMonitor(sdbusplus::async::context& ctx);
 
     /**
-     * @brief Verify physical interface presence
-     * @param physicalInterface Interface specification string
-     * @return true if interface is present and accessible
+     * @brief Destructor - cleanup libusb resources
      */
-    virtual bool verify(const std::string& physicalInterface) = 0;
+    ~USBHotplugMonitor();
 
-  protected:
-    std::vector<std::string> tokens; // Parsed colon-separated parts
+    // Non-copyable, non-movable
+    USBHotplugMonitor(const USBHotplugMonitor&) = delete;
+    USBHotplugMonitor& operator=(const USBHotplugMonitor&) = delete;
+    USBHotplugMonitor(USBHotplugMonitor&&) = delete;
+    USBHotplugMonitor& operator=(USBHotplugMonitor&&) = delete;
 
     /**
-     * @brief Parse interface specification into tokens
-     * @param spec Interface specification (e.g., "usb0:0x0955:0xcf11:...")
-     * @return true if parsing successful
+     * @brief Register a USB device for hotplug monitoring
+     *
+     * Adds device to configured devices list and checks if present.
+     * If device is NOT present at boot, logs error immediately.
+     *
+     * @param device DeviceNode containing USB physical interface info
+     * @return true if device added successfully
      */
-    bool parseInterface(const std::string& spec);
+    bool registerDevice(const DeviceNode& device);
 
     /**
-     * @brief Parse port path string into vector
-     * @param portPathStr Port path string (e.g., "1.3.4")
-     * @param portPath Output vector for port numbers
-     * @return true if parsing successful
+     * @brief Check if hotplug monitoring is supported
+     * @return true if libusb hotplug is available
      */
-    bool parsePortPath(const std::string& portPathStr,
-                       std::vector<uint8_t>& portPath);
-};
-
-/**
- * @brief USB interface checker using libusb
- */
-class USBChecker : public PhysicalInterfaceChecker
-{
-  public:
-    USBChecker();
-    ~USBChecker();
+    bool isHotplugSupported() const;
 
     /**
-     * @brief Verify USB device presence
-     * @param physicalInterface USB interface specification
-     * @return true if USB device found and accessible
+     * @brief Start processing libusb events
+     * Must be called after devices are registered to begin monitoring
      */
-    bool verify(const std::string& physicalInterface) override;
+    void startEventProcessing();
+
+    /**
+     * @brief Static hotplug callback for libusb
+     */
+    static int LIBUSB_CALL hotplugCallback(
+        libusb_context* ctx, libusb_device* dev, libusb_hotplug_event event,
+        void* userData);
 
   private:
-    void* context; // libusb_context*
-
     /**
-     * @brief Verify specific USB device
-     * @param usbSpec Parsed USB interface specification
-     * @return true if device found with matching VID/PID and port path
+     * @brief Coroutine to periodically process libusb events
      */
-    bool verifyUSBDevice(const USBInterface& usbSpec);
+    sdbusplus::async::task<> eventProcessingLoop();
 
     /**
-     * @brief Get device port path from libusb device
-     * @param device libusb_device pointer
-     * @return Port path as vector of port numbers
+     * @brief Handle device removal - called from hotplug callback
+     * @param device libusb device that was removed
      */
-    std::vector<uint8_t> getDevicePortPath(void* device);
+    void handleDeviceRemoval(libusb_device* device);
 
     /**
-     * @brief Check if actual port path matches expected
-     * @param actualPath Port path from USB device
-     * @param expectedPath Port path from specification
-     * @return true if paths match
+     * @brief Check if USB device is currently present on the bus
+     * @param info USB device info to check
+     * @return true if device is found with matching bus, VID, PID, port path
+     */
+    bool isDevicePresent(const USBDeviceInfo& info);
+
+    /**
+     * @brief Parse USB interface string into USBDeviceInfo
+     * @param device DeviceNode to parse
+     * @param info Output USBDeviceInfo
+     * @return true if parsing successful
+     */
+    bool parseUSBInterface(const DeviceNode& device, USBDeviceInfo& info);
+
+    /**
+     * @brief Get port path from libusb device
+     * @param device libusb device pointer
+     * @return Port path as vector
+     */
+    std::vector<uint8_t> getDevicePortPath(libusb_device* device);
+
+    /**
+     * @brief Check if port paths match
      */
     bool matchesPortPath(const std::vector<uint8_t>& actualPath,
                          const std::vector<uint8_t>& expectedPath);
-};
-
-/**
- * @brief Factory for creating physical interface checkers
- */
-class PhysicalInterfaceCheckerFactory
-{
-  public:
-    /**
-     * @brief Create checker based on physical interface type
-     * @param physicalInterface Interface specification string
-     * @return Appropriate checker instance or nullptr
-     */
-    static std::unique_ptr<PhysicalInterfaceChecker> createChecker(
-        const std::string& physicalInterface);
 
     /**
      * @brief Parse protocol from interface specification
@@ -125,19 +130,22 @@ class PhysicalInterfaceCheckerFactory
      */
     static std::string parseProtocol(const std::string& physicalInterface);
 
-  private:
     /**
-     * @brief Parse bus number from interface specification
-     * @param physicalInterface Interface specification (e.g., "usb0:...")
-     * @return Bus number (e.g., 0) or -1 if invalid
+     * @brief Register global callback for device removal events
      */
-    static int parseBus(const std::string& physicalInterface);
-};
+    void registerRemovalCallback();
 
-/**
- * @brief Check device physical interface and commit error if failed
- * @param device DeviceNode to check
- */
-void physicalInterfaceCheck(const DeviceNode& device);
+    sdbusplus::async::context& ctx;
+    libusb_context* usbContext;
+    bool hotplugSupported;
+    bool eventLoopRunning;
+
+    // List of configured USB devices we care about
+    std::vector<USBDeviceInfo> configuredDevices;
+
+    // Handle for the global DEVICE_LEFT callback
+    libusb_hotplug_callback_handle removalCallbackHandle;
+    bool removalCallbackRegistered;
+};
 
 } // namespace phosphor::device::manager

@@ -10,29 +10,47 @@ namespace phosphor::device::manager
 // Global device registry - EID -> DeviceNode pointer
 std::map<uint8_t, std::unique_ptr<DeviceNode>> devicesByEID;
 
-DeviceManager::DeviceManager(sdbusplus::bus_t& bus) : bus(bus)
+DeviceManager::DeviceManager(sdbusplus::async::context& ctx) : ctx(ctx)
 {
     lg2::info("Initializing Device Manager");
 
     try
     {
         // Step 1: Initialize EntityManager interface
-        emInterface = std::make_unique<EntityManagerInterface>(bus);
+        emInterface = std::make_unique<EntityManagerInterface>(ctx.get_bus());
 
         // Step 2: Query existing devices and populate global registry
         initializeDeviceRegistry();
 
-        // Step 3: Validate all registered devices
-        validateAllRegisteredDevices();
+        // Step 3: Initialize USB hotplug monitoring
+        try
+        {
+            usbHotplugMonitor = std::make_unique<USBHotplugMonitor>(ctx);
+        }
+        catch (const std::exception& e)
+        {
+            lg2::warning("Failed to initialize USB hotplug monitor: {ERROR}",
+                         "ERROR", e.what());
+            // Continue without hotplug monitoring
+        }
 
-        // Step 4: Setup monitoring for new devices from EntityManager
+        // Step 4: Register devices for hotplug monitoring
+        registerDevicesForHotplugMonitoring();
+
+        // Step 5: Start USB hotplug event processing
+        if (usbHotplugMonitor)
+        {
+            usbHotplugMonitor->startEventProcessing();
+        }
+
+        // Step 7: Setup monitoring for new devices from EntityManager
         emInterface->setupSignalMonitoring(
             [this](const PropertyMap& deviceProperties) {
                 onEntityManagerDeviceAdded(deviceProperties);
             });
 
-        // Step 5: Initialize MCTP endpoint monitoring
-        mctpInterface = std::make_unique<MCTPInterface>(bus);
+        // Step 8: Initialize MCTP endpoint monitoring
+        mctpInterface = std::make_unique<MCTPInterface>(ctx.get_bus());
 
         lg2::info("Device Manager initialized successfully");
     }
@@ -91,19 +109,26 @@ void DeviceManager::initializeDeviceRegistry()
     }
 }
 
-void DeviceManager::validateAllRegisteredDevices()
+void DeviceManager::registerDevicesForHotplugMonitoring()
 {
-    lg2::info("Validating {COUNT} registered devices", "COUNT",
+    lg2::info("Registering {COUNT} devices for hotplug monitoring", "COUNT",
               devicesByEID.size());
+
+    if (!usbHotplugMonitor)
+    {
+        lg2::warning(
+            "USB hotplug monitor not available, skipping device registration");
+        return;
+    }
 
     for (const auto& [eid, device] : devicesByEID)
     {
-        lg2::debug("Validating device: {NAME} (EID {EID})", "NAME",
+        lg2::debug("Registering device for hotplug: {NAME} (EID {EID})", "NAME",
                    device->name, "EID", eid);
-        physicalInterfaceCheck(*device);
+        usbHotplugMonitor->registerDevice(*device);
     }
 
-    lg2::info("Device validation completed");
+    lg2::info("Device hotplug registration completed");
 }
 
 void DeviceManager::onEntityManagerDeviceAdded(const PropertyMap& properties)
@@ -121,8 +146,11 @@ void DeviceManager::onEntityManagerDeviceAdded(const PropertyMap& properties)
         {
             uint8_t eid = *device->eid;
 
-            // Check physical interface
-            physicalInterfaceCheck(*device);
+            // Register for USB hotplug monitoring
+            if (usbHotplugMonitor)
+            {
+                usbHotplugMonitor->registerDevice(*device);
+            }
 
             // Store in registry
             devicesByEID[eid] = std::move(device);

@@ -2,7 +2,6 @@
 
 #include "device_error_logger.hpp"
 #include "device_manager.hpp"
-#include "physical_interface_check.hpp"
 
 #include <phosphor-logging/lg2.hpp>
 
@@ -133,17 +132,18 @@ void MCTPInterface::handleInterfacesRemoved(sdbusplus::message_t& msg)
                 lg2::info("MCTP endpoint removed: {OBJECT_PATH}, EID: {EID}",
                           "OBJECT_PATH", objectPath.str, "EID", eid);
 
-                auto it = devicesByEID.find(eid);
-                if (it != devicesByEID.end())
+                // Note: Physical interface errors are now handled by USB
+                // hotplug monitoring, not by MCTP endpoint removal signals.
+                auto devIt = devicesByEID.find(eid);
+                if (devIt != devicesByEID.end())
                 {
                     lg2::info(
-                        "Checking physical interface for removed MCTP endpoint: {NAME} (EID {EID})",
-                        "NAME", it->second->name, "EID", eid);
-                    physicalInterfaceCheck(*it->second);
+                        "MCTP endpoint removed for device: {NAME} (EID {EID})",
+                        "NAME", devIt->second->name, "EID", eid);
                 }
                 else
                 {
-                    lg2::warning(
+                    lg2::debug(
                         "No device found for removed MCTP endpoint EID {EID}",
                         "EID", eid);
                 }
