@@ -716,8 +716,7 @@ void HealthMetricCollection::handleServiceName(const std::string& serviceName)
     }
     else
     {
-        info("NON PLDMD service name {SERVICE_NAME}", "SERVICE_NAME",
-             serviceName);
+        info("service name {SERVICE_NAME}", "SERVICE_NAME", serviceName);
         phosphor::health::utils::asyncCreateRFLogEntry(
             "OpenBMC.0.5.ServiceRestart", binaryName,
             "xyz.openbmc_project.Logging.Entry.Level.Critical", "none");
