@@ -418,10 +418,11 @@ sdbusplus::async::task<> USBHotplugMonitor::eventProcessingLoop()
     {
         if (hotplugSupported)
         {
-            libusb_handle_events(usbContext);
+            struct timeval tv = {0, 0};
+            libusb_handle_events_timeout_completed(usbContext, &tv, nullptr);
         }
 
-        co_await sdbusplus::async::sleep_for(ctx, 100ms);
+        co_await sdbusplus::async::sleep_for(ctx, 1s);
     }
 
     eventLoopRunning = false;
