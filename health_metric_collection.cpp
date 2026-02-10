@@ -711,7 +711,7 @@ void HealthMetricCollection::handleServiceName(const std::string& serviceName)
     {
         phosphor::health::utils::asyncCreateRFLogEntry(
             "OpenBMC.0.5.ServiceRestart", binaryName,
-            "xyz.openbmc_project.Logging.Entry.Level.Critical", "none",
+            "xyz.openbmc_project.Logging.Entry.Level.Informational", "none",
             "FWUpdate");
     }
     else
@@ -719,7 +719,7 @@ void HealthMetricCollection::handleServiceName(const std::string& serviceName)
         info("service name {SERVICE_NAME}", "SERVICE_NAME", serviceName);
         phosphor::health::utils::asyncCreateRFLogEntry(
             "OpenBMC.0.5.ServiceRestart", binaryName,
-            "xyz.openbmc_project.Logging.Entry.Level.Critical", "none");
+            "xyz.openbmc_project.Logging.Entry.Level.Informational", "none");
     }
 }
 } // namespace phosphor::health::metric::collection
