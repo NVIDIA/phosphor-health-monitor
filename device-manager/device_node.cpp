@@ -9,6 +9,7 @@ DeviceNode::DeviceNode(const PropertyMap& emProperties)
 {
     // Extract only the fields we need
     name = getStringProperty(emProperties, "Name");
+    deviceType = getStringProperty(emProperties, "DeviceType");
     physicalInterface = getStringProperty(emProperties, "PhysicalInterface");
 
     std::string deviceAddress =

@@ -16,6 +16,7 @@ namespace phosphor::device::manager
 struct DeviceNode
 {
     std::string name;              // From "Name"
+    std::string deviceType;        // From "DeviceType" (e.g., "BMC", "GPU")
     std::string physicalInterface; // From "PhysicalInterface" (e.g.,
                                    // "usb:0:0x0955:0xcf11:0:0x02:0x81:1.3.4")
     std::optional<uint8_t>

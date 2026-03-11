@@ -85,7 +85,8 @@ void DeviceErrorLogger::commitPhysicalInterfaceError(
             {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceErrorsDetected"},
             {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
             {"REDFISH_RESOLUTION", resolution},
-            {"REDFISH_SEVERITY", "Critical"},
+            {"REDFISH_SEVERITY",
+             "xyz.openbmc_project.Logging.Entry.Level.Critical"},
             {"REDFISH_ORIGIN_OF_CONDITION", name}};
 
         CommitDeviceError(eid, errorCode, ErrorClass::PhysicalInterface,
@@ -95,6 +96,78 @@ void DeviceErrorLogger::commitPhysicalInterfaceError(
     {
         lg2::error(
             "Exception while committing Physical Interface error for EID {EID}: {ERROR}",
+            "EID", eid, "ERROR", e.what());
+    }
+}
+
+void DeviceErrorLogger::commitPowerStandbyError(uint8_t eid,
+                                                const std::string& deviceName)
+{
+    try
+    {
+        using namespace nv::lg2;
+
+        std::string name =
+            deviceName.empty() ? ("EID_" + std::to_string(eid)) : deviceName;
+
+        std::string errorMessage =
+            "Device not powered on as the system is in standby power";
+        std::string resolution =
+            "Ensure all devices are powered ON and system is in DC ON state.";
+
+        std::map<std::string, std::string> additionalData = {
+            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceErrorsDetected"},
+            {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
+            {"REDFISH_RESOLUTION", resolution},
+            {"REDFISH_SEVERITY",
+             "xyz.openbmc_project.Logging.Entry.Level.Informational"},
+            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+
+        lg2::info(
+            "Committing power standby error for device {DEVICE} (EID: {EID})",
+            "DEVICE", name, "EID", eid);
+
+        CommitDeviceError(eid, ErrorCode::PowerStatus::POWER_OFF,
+                          ErrorClass::Power, additionalData);
+    }
+    catch (const std::exception& e)
+    {
+        lg2::error(
+            "Exception while committing power standby error for EID {EID}: {ERROR}",
+            "EID", eid, "ERROR", e.what());
+    }
+}
+
+void DeviceErrorLogger::commitPowerOnEvent(uint8_t eid,
+                                           const std::string& deviceName)
+{
+    try
+    {
+        using namespace nv::lg2;
+
+        std::string name =
+            deviceName.empty() ? ("EID_" + std::to_string(eid)) : deviceName;
+
+        std::string errorMessage = "Device powered on successfully";
+        std::string resolution = "";
+
+        std::map<std::string, std::string> additionalData = {
+            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceStatusChangedOK"},
+            {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
+            {"REDFISH_RESOLUTION", resolution},
+            {"REDFISH_SEVERITY", "OK"},
+            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+
+        lg2::info("Committing power on event for device {DEVICE} (EID: {EID})",
+                  "DEVICE", name, "EID", eid);
+
+        CommitDeviceError(eid, ErrorCode::PowerStatus::POWER_ON,
+                          ErrorClass::Power, additionalData);
+    }
+    catch (const std::exception& e)
+    {
+        lg2::error(
+            "Exception while committing power on event for EID {EID}: {ERROR}",
             "EID", eid, "ERROR", e.what());
     }
 }

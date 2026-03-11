@@ -30,6 +30,23 @@ class DeviceErrorLogger
      */
     static void commitPhysicalInterfaceError(uint8_t eid,
                                              const std::string& deviceName);
+
+    /**
+     * @brief Commit power standby error for a device
+     * Called when chassis power transitions to Off
+     * @param eid Device EID (address)
+     * @param deviceName Device name
+     */
+    static void commitPowerStandbyError(uint8_t eid,
+                                        const std::string& deviceName);
+
+    /**
+     * @brief Commit power on event for a device
+     * Called when chassis power transitions to On - auto-clears standby errors
+     * @param eid Device EID (address)
+     * @param deviceName Device name
+     */
+    static void commitPowerOnEvent(uint8_t eid, const std::string& deviceName);
 };
 
 } // namespace phosphor::device::manager

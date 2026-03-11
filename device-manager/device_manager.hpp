@@ -4,6 +4,7 @@
 #include "em_interface.hpp"
 #include "mctp_interface.hpp"
 #include "physical_interface_check.hpp"
+#include "power_state_monitor.hpp"
 
 #include <sdbusplus/async.hpp>
 #include <sdbusplus/bus.hpp>
@@ -35,6 +36,9 @@ class DeviceManager
 
     // USB hotplug monitoring
     std::unique_ptr<USBHotplugMonitor> usbHotplugMonitor;
+
+    // Power state monitoring
+    std::unique_ptr<PowerStateMonitor> powerStateMonitor;
 };
 
 } // namespace phosphor::device::manager
