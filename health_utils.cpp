@@ -11,10 +11,15 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 PHOSPHOR_LOG2_USING;
 
 namespace phosphor::health::utils
 {
+
+static const std::unordered_set<std::string> systemdReplaceIrreversiblyTarget{
+    "halt.target",        "poweroff.target", "reboot.target",
+    "soft-reboot.target", "kexec.target",    "exit.target"};
 
 void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
                const std::string resource, const std::string path,
@@ -57,7 +62,14 @@ void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
     sdbusplus::message_t msg = bus.new_method_call(
         "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager", "StartUnit");
-    msg.append(service, "replace");
+    if (systemdReplaceIrreversiblyTarget.contains(service))
+    {
+        msg.append(service, "replace-irreversibly");
+    }
+    else
+    {
+        msg.append(service, "replace");
+    }
     bus.call_noreply(msg);
 }
 
