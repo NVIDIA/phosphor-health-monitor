@@ -87,7 +87,9 @@ void DeviceErrorLogger::commitPhysicalInterfaceError(
             {"REDFISH_RESOLUTION", resolution},
             {"REDFISH_SEVERITY",
              "xyz.openbmc_project.Logging.Entry.Level.Informational"},
-            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+            {"REDFISH_ORIGIN_OF_CONDITION", name},
+            {"DEVICE_NAME", name},
+            {"ERROR_ID", "FWUP_DEVICE_ABSENT_ON_USB_PHYSICAL_INTERFACE"}};
 
         CommitDeviceError(eid, errorCode, ErrorClass::PhysicalInterface,
                           additionalData);
@@ -121,7 +123,9 @@ void DeviceErrorLogger::commitPowerStandbyError(uint8_t eid,
             {"REDFISH_RESOLUTION", resolution},
             {"REDFISH_SEVERITY",
              "xyz.openbmc_project.Logging.Entry.Level.Informational"},
-            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+            {"REDFISH_ORIGIN_OF_CONDITION", name},
+            {"DEVICE_NAME", name},
+            {"ERROR_ID", "FWUP_SYSTEM_IN_STANDBY_POWER"}};
 
         lg2::info(
             "Committing power standby error for device {DEVICE} (EID: {EID})",
