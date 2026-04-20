@@ -86,7 +86,7 @@ void DeviceErrorLogger::commitPhysicalInterfaceError(
             {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
             {"REDFISH_RESOLUTION", resolution},
             {"REDFISH_SEVERITY",
-             "xyz.openbmc_project.Logging.Entry.Level.Critical"},
+             "xyz.openbmc_project.Logging.Entry.Level.Informational"},
             {"REDFISH_ORIGIN_OF_CONDITION", name}};
 
         CommitDeviceError(eid, errorCode, ErrorClass::PhysicalInterface,
