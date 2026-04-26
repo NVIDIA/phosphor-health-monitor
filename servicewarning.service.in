@@ -3,6 +3,4 @@ Description=Service level warning Action Script
 [Service]
 ExecStart=/usr/bin/service_warning_action.sh %I 
 Type=oneshot
- 
-[Install]
-WantedBy=multi-user.target
+
