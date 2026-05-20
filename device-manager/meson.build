@@ -6,6 +6,7 @@ device_manager_sources = [
     'physical_interface_check.cpp',
     'device_manager.cpp',
     'em_interface.cpp',
+    'power_state_monitor.cpp',
 ]
 
 # Dependencies

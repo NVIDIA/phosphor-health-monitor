@@ -52,6 +52,10 @@ DeviceManager::DeviceManager(sdbusplus::async::context& ctx) : ctx(ctx)
         // Step 8: Initialize MCTP endpoint monitoring
         mctpInterface = std::make_unique<MCTPInterface>(ctx.get_bus());
 
+        // Step 9: Initialize power state monitoring
+        powerStateMonitor =
+            std::make_unique<PowerStateMonitor>(ctx.get_bus(), devicesByEID);
+
         lg2::info("Device Manager initialized successfully");
     }
     catch (const std::exception& e)
