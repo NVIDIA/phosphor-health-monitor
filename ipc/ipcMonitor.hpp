@@ -56,10 +56,10 @@ class IPCMonitor
     /** @brief Logging Rate Limit */
     sdbusplus::bus_t& bus;
     boost::asio::io_context& ioc;
-    unsigned int logRateLimit;
+    unsigned int logRateLimit = 0;
     std::vector<IPCConfig> configs;
     const std::vector<IPCConfig> getIPCConfig();
-    unsigned int bootDelay;
+    unsigned int bootDelay = 0;
 };
 
 } // namespace ipc
