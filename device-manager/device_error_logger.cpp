@@ -159,7 +159,8 @@ void DeviceErrorLogger::commitPowerOnEvent(uint8_t eid,
             {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceStatusChangedOK"},
             {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
             {"REDFISH_RESOLUTION", resolution},
-            {"REDFISH_SEVERITY", "OK"},
+            {"REDFISH_SEVERITY",
+             "xyz.openbmc_project.Logging.Entry.Level.Informational"},
             {"REDFISH_ORIGIN_OF_CONDITION", name}};
 
         lg2::info("Committing power on event for device {DEVICE} (EID: {EID})",
