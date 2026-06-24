@@ -91,6 +91,19 @@ const std::vector<IPCConfig> IPCMonitor::getIPCConfig()
                         paramJson["Threshold"]["Warning"]["Value"];
                     paramConfig.warningTgt =
                         paramJson["Threshold"]["Warning"]["Target"];
+                    // Optional Redfish EventId / Resolution per severity.
+                    // Absent values fall back to computed defaults in
+                    // IPCHealthSensor::createThresholdLogEntry().
+                    paramConfig.criticalErrorId =
+                        paramJson["Threshold"]["Critical"].value("ErrorId", "");
+                    paramConfig.warningErrorId =
+                        paramJson["Threshold"]["Warning"].value("ErrorId", "");
+                    paramConfig.criticalResolution =
+                        paramJson["Threshold"]["Critical"].value("Resolution",
+                                                                 "");
+                    paramConfig.warningResolution =
+                        paramJson["Threshold"]["Warning"].value("Resolution",
+                                                                "");
 
                     ipcConfig.paramConfig.push_back(paramConfig);
                 }
