@@ -1,6 +1,7 @@
 #include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/bus/match.hpp>
+#include <sdbusplus/message.hpp>
 
 #include <chrono>
 #include <iostream>
@@ -8,7 +9,7 @@
 #include <thread>
 PHOSPHOR_LOG2_USING;
 // Callback function to handle signals
-void signalHandler(sdbusplus::message::message& msg)
+void signalHandler(sdbusplus::message_t& msg)
 {
     std::string interfaceName;
     std::string signalName;

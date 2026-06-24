@@ -256,7 +256,7 @@ void DBusIpcSensor::convertConnectionToUnit(const std::string& connName,
             connObject->async_method_call(
                 [this, callback = std::move(callback),
                  pid](const boost::system::error_code ec,
-                      sdbusplus::message::object_path path) {
+                      sdbusplus::object_path path) {
                     if (ec)
                     {
                         // TODO: Handle for specific error code
@@ -424,7 +424,7 @@ void DBusIpcSensor::checkSensorThreshold(const double value,
     }
 }
 // Constructor implementation
-DBusIpcSensor::DBusIpcSensor(sdbusplus::bus::bus& bus, IPCConfig& ipcConfig,
+DBusIpcSensor::DBusIpcSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
                              boost::asio::io_context& io) :
     IPCHealthSensor(bus, ipcConfig, io)
 {}
