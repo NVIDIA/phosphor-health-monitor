@@ -10,6 +10,8 @@
 #include <sdbusplus/message.hpp>
 #include <sdbusplus/server/manager.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <numeric>
 namespace phosphor
@@ -72,11 +74,35 @@ void IPCHealthSensor::readSensordata()
 void IPCHealthSensor::createThresholdLogEntry(
     const std::string& threshold, const std::string& serviceName,
     const std::string& proprtyName, double value,
-    const double configThresholdValue)
+    const double configThresholdValue, const std::string& resolution,
+    const std::string& errorId)
 {
     std::string messageId = "OpenBMC.0.4.";
     std::string messageArgs{};
     std::string messageLevel{};
+
+    // Build a stable EventId and a human-readable Resolution for the log,
+    // preferring values supplied through bmc_ipc_config.json and falling back
+    // to computed defaults so every IPC threshold log carries both fields
+    // (NVBug 6130092 Gap A/B).
+    auto toUpper = [](std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return std::toupper(c); });
+        return s;
+    };
+    const std::string eventId =
+        !errorId.empty()
+            ? errorId
+            : ("DBUS-IPC-" + toUpper(proprtyName) + "-" + toUpper(threshold));
+    const std::string eventResolution =
+        !resolution.empty()
+            ? resolution
+            : ("Investigate the '" + proprtyName + "' D-Bus IPC usage of '" +
+               serviceName +
+               "'. Inspect the service journal for excessive D-Bus "
+               "calls/signals and restart the service if the condition "
+               "persists.");
+
     if (threshold == "warning")
     {
         messageId += "IPCWarningThresholdCrossed";
@@ -84,7 +110,8 @@ void IPCHealthSensor::createThresholdLogEntry(
                       std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Warning";
-        createRFLogEntry(messageId, messageArgs, messageLevel);
+        createRFLogEntry(messageId, messageArgs, messageLevel, eventResolution,
+                         eventId);
     }
     else if (threshold == "critical")
     {
@@ -93,7 +120,8 @@ void IPCHealthSensor::createThresholdLogEntry(
                       std::to_string(value) + "," +
                       std::to_string(configThresholdValue);
         messageLevel = "xyz.openbmc_project.Logging.Entry.Level.Critical";
-        createRFLogEntry(messageId, messageArgs, messageLevel);
+        createRFLogEntry(messageId, messageArgs, messageLevel, eventResolution,
+                         eventId);
     }
     else
     {
@@ -163,7 +191,8 @@ void IPCHealthSensor::checkSensorThreshold(
             lg2::info("Creating threshold log entry for critical");
 
             createThresholdLogEntry("critical", serviceName, cfg.key, value,
-                                    cfg.criticalHigh);
+                                    cfg.criticalHigh, cfg.criticalResolution,
+                                    cfg.criticalErrorId);
             startUnit(cfg.criticalTgt, serviceName, "CrossedCriticalThreshold");
         }
     }
@@ -187,7 +216,8 @@ void IPCHealthSensor::checkSensorThreshold(
         {
             lg2::info("Creating threshold log entry for warning");
             createThresholdLogEntry("warning", serviceName, cfg.key, value,
-                                    cfg.warningHigh);
+                                    cfg.warningHigh, cfg.warningResolution,
+                                    cfg.warningErrorId);
         }
     }
     else if (std::isfinite(cfg.warningHigh) &&
@@ -202,9 +232,10 @@ void IPCHealthSensor::checkSensorThreshold(
 }
 
 // Create log entry implementation
-void IPCHealthSensor::createRFLogEntry(const std::string& messageId,
-                                       const std::string& messageArgs,
-                                       const std::string& level)
+void IPCHealthSensor::createRFLogEntry(
+    const std::string& messageId, const std::string& messageArgs,
+    const std::string& level, const std::string& resolution,
+    const std::string& errorId)
 {
     auto& connObject = AsioConnection::getAsioConnection();
     if (connObject == nullptr)
@@ -215,6 +246,17 @@ void IPCHealthSensor::createRFLogEntry(const std::string& messageId,
     std::map<std::string, std::string> addData;
     addData["REDFISH_MESSAGE_ID"] = messageId;
     addData["REDFISH_MESSAGE_ARGS"] = messageArgs;
+    // phosphor-logging promotes "xyz.openbmc_project.Logging.Entry.*" keys onto
+    // first-class Entry properties, which bmcweb surfaces as the Redfish
+    // LogEntry Resolution and EventId fields (NVBug 6130092 Gap A/B).
+    if (!resolution.empty())
+    {
+        addData["xyz.openbmc_project.Logging.Entry.Resolution"] = resolution;
+    }
+    if (!errorId.empty())
+    {
+        addData["xyz.openbmc_project.Logging.Entry.EventId"] = errorId;
+    }
     // Make call to DBus Debug Service to create log entry
     connObject->async_method_call(
         [](const boost::system::error_code ec) {

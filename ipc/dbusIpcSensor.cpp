@@ -306,7 +306,9 @@ void DBusIpcSensor::logAndExecuteAction(
     {
         lg2::info("Creating threshold log entry for critical");
         createThresholdLogEntry("critical", unitName, paramConfig.key, value,
-                                paramConfig.criticalHigh);
+                                paramConfig.criticalHigh,
+                                paramConfig.criticalResolution,
+                                paramConfig.criticalErrorId);
         startUnit(paramConfig.criticalTgt, unitName,
                   "CriticalThresholdLimitCrossed");
         if (logStatusMap.find(connKey) != logStatusMap.end())
@@ -323,7 +325,9 @@ void DBusIpcSensor::logAndExecuteAction(
     {
         lg2::info("Creating threshold log entry for warning");
         createThresholdLogEntry("warning", unitName, paramConfig.key, value,
-                                paramConfig.warningHigh);
+                                paramConfig.warningHigh,
+                                paramConfig.warningResolution,
+                                paramConfig.warningErrorId);
         if (logStatusMap.find(connKey) != logStatusMap.end())
         {
             if (!logStatusMap[connKey].first)

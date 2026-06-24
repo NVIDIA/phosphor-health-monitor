@@ -54,13 +54,15 @@ class IPCHealthSensor
                                       struct ParamConfig cfg);
 
     /** @brief create Sensor Treshold Redfish log  */
-    void createThresholdLogEntry(const std::string& threshold,
-                                 const std::string& sensorName,
-                                 const std::string& proprtyName, double value,
-                                 const double configThresholdValue);
-    void createRFLogEntry(const std::string& messageId,
-                          const std::string& messageArgs,
-                          const std::string& level);
+    void createThresholdLogEntry(
+        const std::string& threshold, const std::string& sensorName,
+        const std::string& proprtyName, double value,
+        const double configThresholdValue, const std::string& resolution = "",
+        const std::string& errorId = "");
+    void createRFLogEntry(
+        const std::string& messageId, const std::string& messageArgs,
+        const std::string& level, const std::string& resolution = "",
+        const std::string& errorId = "");
     /** @brief Read sensor data */
     void readSensordata();
 

@@ -17,11 +17,15 @@
           "Threshold": {
             "Critical": {
               "Value": 8388608,
-              "Target": "HMIpcRestart@.service"
+              "Target": "HMIpcRestart@.service",
+              "ErrorId": "DBUS-IPC-OUTGOINGBYTES-CRITICAL",
+              "Resolution": "A D-Bus client is emitting an abnormally high volume of outgoing IPC traffic, which can saturate the message bus. Identify the offending service from the event's MessageArgs, inspect its journal for excessive D-Bus method calls or signal emissions, and restart it. The monitor automatically restarts the unit via HMIpcRestart@.service when the critical threshold is crossed."
             },
             "Warning": {
               "Value": 6291456,
-              "Target": "log.target"
+              "Target": "log.target",
+              "ErrorId": "DBUS-IPC-OUTGOINGBYTES-WARNING",
+              "Resolution": "A D-Bus client's outgoing IPC traffic exceeded the warning threshold. Monitor the service named in the event's MessageArgs; if traffic continues to climb toward the critical threshold, inspect its journal for excessive D-Bus calls or signals and consider restarting it."
             }
           }
         },
@@ -32,11 +36,15 @@
           "Threshold": {
             "Critical": {
               "Value": 8388608,
-              "Target": "HMIpcRestart@.service"
+              "Target": "HMIpcRestart@.service",
+              "ErrorId": "DBUS-IPC-INCOMINGBYTES-CRITICAL",
+              "Resolution": "A D-Bus client is receiving an abnormally high volume of incoming IPC traffic, which can saturate the message bus. Identify the offending service from the event's MessageArgs, inspect its journal for excessive D-Bus traffic, and restart it. The monitor automatically restarts the unit via HMIpcRestart@.service when the critical threshold is crossed."
             },
             "Warning": {
               "Value": 6291456,
-              "Target": "log.target"
+              "Target": "log.target",
+              "ErrorId": "DBUS-IPC-INCOMINGBYTES-WARNING",
+              "Resolution": "A D-Bus client's incoming IPC traffic exceeded the warning threshold. Monitor the service named in the event's MessageArgs; if traffic continues to climb toward the critical threshold, inspect its journal for excessive D-Bus traffic and consider restarting it."
             }
           }
         }
