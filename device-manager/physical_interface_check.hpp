@@ -5,10 +5,8 @@
 #include <libusb.h>
 
 #include <sdbusplus/async.hpp>
-#include <sdbusplus/async/fdio.hpp>
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -87,7 +85,7 @@ class USBHotplugMonitor
 
   private:
     /**
-     * @brief Coroutine to process libusb events via fd watcher
+     * @brief Coroutine to periodically process libusb events
      */
     sdbusplus::async::task<> eventProcessingLoop();
 
@@ -137,28 +135,6 @@ class USBHotplugMonitor
      */
     void registerRemovalCallback();
 
-    /**
-     * @brief libusb pollfd added/removed notifier callbacks
-     */
-    static void pollfdAddedCallback(int fd, short events, void* userData);
-    static void pollfdRemovedCallback(int fd, void* userData);
-
-    /**
-     * @brief Add/remove an sdbusplus fdio watcher for a libusb fd
-     */
-    void addWatcher(int fd);
-    void removeWatcher(int fd);
-
-    /**
-     * @brief Attach the first available libusb pollfd as the fdio watcher
-     */
-    void attachFirstPollfd(bool warnIfNull = false);
-
-    /**
-     * @brief Process pending libusb events with a zero timeout
-     */
-    void processLibusbEvents();
-
     sdbusplus::async::context& ctx;
     libusb_context* usbContext;
     bool hotplugSupported;
@@ -170,10 +146,6 @@ class USBHotplugMonitor
     // Handle for the global DEVICE_LEFT callback
     libusb_hotplug_callback_handle removalCallbackHandle;
     bool removalCallbackRegistered;
-
-    // fd-based watcher replacing the polling sleep loop
-    std::unique_ptr<sdbusplus::async::fdio> libusbBell;
-    int libusbBellFd = -1;
 };
 
 } // namespace phosphor::device::manager
