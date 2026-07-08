@@ -70,7 +70,15 @@ void startUnit(sdbusplus::bus_t& bus, const std::string& sysdUnit,
     {
         msg.append(service, "replace");
     }
-    bus.call_noreply(msg);
+    try
+    {
+        bus.call_noreply(msg);
+    }
+    catch (const sdbusplus::exception::exception& e)
+    {
+        error("startUnit failed for {UNIT}: {ERROR}", "UNIT", sysdUnit, "ERROR",
+              e);
+    }
 }
 
 auto findPaths(sdbusplus::async::context& ctx, const std::string& iface,
