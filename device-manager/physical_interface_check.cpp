@@ -3,7 +3,6 @@
 #include "device_error_logger.hpp"
 
 #include <libusb-1.0/libusb.h>
-#include <sys/time.h>
 
 #include <phosphor-logging/lg2.hpp>
 
@@ -66,9 +65,6 @@ USBHotplugMonitor::~USBHotplugMonitor()
 
     if (usbContext)
     {
-        libusb_set_pollfd_notifiers(usbContext, nullptr, nullptr, nullptr);
-        libusbBell.reset();
-        libusbBellFd = -1;
         libusb_exit(usbContext);
         usbContext = nullptr;
     }
@@ -244,10 +240,6 @@ void USBHotplugMonitor::registerRemovalCallback()
 
     removalCallbackRegistered = true;
     lg2::info("Registered global USB device removal callback");
-
-    libusb_set_pollfd_notifiers(usbContext, pollfdAddedCallback,
-                                pollfdRemovedCallback, this);
-    attachFirstPollfd(true);
 }
 
 bool USBHotplugMonitor::registerDevice(const DeviceNode& device)
@@ -424,93 +416,18 @@ sdbusplus::async::task<> USBHotplugMonitor::eventProcessingLoop()
 
     while (eventLoopRunning && !ctx.stop_requested() && usbContext)
     {
-        if (!libusbBell)
+        if (hotplugSupported)
         {
-            // No fd watcher yet - fall back to periodic polling
-            processLibusbEvents();
-            co_await sdbusplus::async::sleep_for(ctx, 1s);
-            continue;
+            struct timeval tv = {0, 0};
+            libusb_handle_events_timeout_completed(usbContext, &tv, nullptr);
         }
 
-        co_await libusbBell->next();
-        processLibusbEvents();
+        co_await sdbusplus::async::sleep_for(ctx, 1s);
     }
 
     eventLoopRunning = false;
     lg2::info("USB hotplug event loop stopped");
     co_return;
-}
-
-void USBHotplugMonitor::pollfdAddedCallback(int fd, short /*events*/,
-                                            void* userData)
-{
-    auto* self = static_cast<USBHotplugMonitor*>(userData);
-    if (self)
-    {
-        self->addWatcher(fd);
-    }
-}
-
-void USBHotplugMonitor::pollfdRemovedCallback(int fd, void* userData)
-{
-    auto* self = static_cast<USBHotplugMonitor*>(userData);
-    if (self)
-    {
-        self->removeWatcher(fd);
-    }
-}
-
-void USBHotplugMonitor::addWatcher(int fd)
-{
-    if (libusbBell)
-    {
-        return;
-    }
-    try
-    {
-        libusbBell = std::make_unique<sdbusplus::async::fdio>(ctx, fd);
-        libusbBellFd = fd;
-    }
-    catch (const std::exception& e)
-    {
-        lg2::error("Failed to create fdio watcher for FD {FD}: {ERROR}", "FD",
-                   fd, "ERROR", e.what());
-    }
-}
-
-void USBHotplugMonitor::removeWatcher(int fd)
-{
-    if (fd != libusbBellFd)
-    {
-        return;
-    }
-    libusbBell.reset();
-    libusbBellFd = -1;
-    attachFirstPollfd();
-}
-
-void USBHotplugMonitor::attachFirstPollfd(bool warnIfNull)
-{
-    const libusb_pollfd** pfds = libusb_get_pollfds(usbContext);
-    if (!pfds)
-    {
-        if (warnIfNull)
-        {
-            lg2::warning("libusb_get_pollfds returned null");
-        }
-        return;
-    }
-    if (*pfds != nullptr)
-    {
-        addWatcher((*pfds)->fd);
-    }
-    libusb_free_pollfds(pfds);
-}
-
-void USBHotplugMonitor::processLibusbEvents()
-{
-    struct timeval tv = {0, 0};
-    libusb_handle_events_timeout_completed(usbContext, &tv, nullptr);
 }
 
 } // namespace phosphor::device::manager
