@@ -112,14 +112,18 @@ void DeviceErrorLogger::commitPowerStandbyError(uint8_t eid,
         std::string name =
             deviceName.empty() ? ("EID_" + std::to_string(eid)) : deviceName;
 
-        std::string errorMessage =
-            "Device not powered on as the system is in standby power";
+        // The condition is a host/chassis power-state transition (chassis is in
+        // standby power), not a fault detected on the device.  Convey the host
+        // as the resource whose state changed; the device is retained only as
+        // the origin-of-condition anchor in the metadata below.
+        std::string hostName = "Host";
+        std::string state = "StandbyOffline";
         std::string resolution =
-            "Ensure all devices are powered ON and system is in DC ON state.";
+            "Ensure the system is in DC ON state to power on all devices.";
 
         std::map<std::string, std::string> additionalData = {
-            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceErrorsDetected"},
-            {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
+            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.1.ResourceStateChanged"},
+            {"REDFISH_MESSAGE_ARGS", hostName + ", " + state},
             {"REDFISH_RESOLUTION", resolution},
             {"REDFISH_SEVERITY",
              "xyz.openbmc_project.Logging.Entry.Level.Informational"},
@@ -152,16 +156,22 @@ void DeviceErrorLogger::commitPowerOnEvent(uint8_t eid,
         std::string name =
             deviceName.empty() ? ("EID_" + std::to_string(eid)) : deviceName;
 
-        std::string errorMessage = "Device powered on successfully";
+        // Mirror of commitPowerStandbyError: a host power-state transition
+        // (chassis moved to DC ON / main power), reported against the host as
+        // a state change.  The device is retained only as the
+        // origin-of-condition anchor below.
+        std::string hostName = "Host";
+        std::string state = "Enabled";
         std::string resolution = "";
 
         std::map<std::string, std::string> additionalData = {
-            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.0.ResourceStatusChangedOK"},
-            {"REDFISH_MESSAGE_ARGS", name + ", " + errorMessage},
+            {"REDFISH_MESSAGE_ID", "ResourceEvent.1.1.ResourceStateChanged"},
+            {"REDFISH_MESSAGE_ARGS", hostName + ", " + state},
             {"REDFISH_RESOLUTION", resolution},
             {"REDFISH_SEVERITY",
              "xyz.openbmc_project.Logging.Entry.Level.Informational"},
-            {"REDFISH_ORIGIN_OF_CONDITION", name}};
+            {"REDFISH_ORIGIN_OF_CONDITION", name},
+            {"DEVICE_NAME", name}};
 
         lg2::info("Committing power on event for device {DEVICE} (EID: {EID})",
                   "DEVICE", name, "EID", eid);
