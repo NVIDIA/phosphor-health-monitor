@@ -54,7 +54,7 @@ void MCTPInterface::handleInterfacesAdded(sdbusplus::message_t& msg)
             return;
         }
 
-        sdbusplus::message::object_path objectPath;
+        sdbusplus::object_path objectPath;
         using PropertyValue =
             std::variant<bool, uint8_t, int16_t, uint16_t, int32_t, uint32_t,
                          int64_t, uint64_t, double, std::string,
@@ -115,7 +115,7 @@ void MCTPInterface::handleInterfacesRemoved(sdbusplus::message_t& msg)
             return;
         }
 
-        sdbusplus::message::object_path objectPath;
+        sdbusplus::object_path objectPath;
         std::vector<std::string> interfaces;
 
         // Read the D-Bus message
