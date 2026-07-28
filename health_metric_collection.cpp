@@ -3,6 +3,7 @@
 #include <dirent.h>
 
 #include <phosphor-logging/lg2.hpp>
+#include <sdbusplus/exception.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -263,6 +264,12 @@ auto HealthMetricCollection::readCPU() -> bool
 
     for (auto& config : configs)
     {
+        if (metrics.find(config.name) == metrics.end())
+        {
+            // No metric object created for this config (e.g. registration
+            // failed and was skipped); nothing to update.
+            continue;
+        }
         uint64_t activeTime = 0, activeTimeDiff = 0, totalTime = 0,
                  totalTimeDiff = 0;
         double activePercValue = 0;
@@ -355,6 +362,12 @@ auto HealthMetricCollection::readMemory() -> bool
 
     for (auto& config : configs)
     {
+        if (metrics.find(config.name) == metrics.end())
+        {
+            // No metric object created for this config (e.g. registration
+            // failed and was skipped); nothing to update.
+            continue;
+        }
         // Convert kB to Bytes
         auto value = memoryValues.at(config.subType) * 1024;
         auto total = memoryValues.at(MetricIntf::SubType::memoryTotal) * 1024;
@@ -579,14 +592,25 @@ void HealthMetricCollection::createPendingConfigs()
                             info(
                                 "Updating pid of health metric for process {NAME} and pid {PID}",
                                 "NAME", config.name, "PID", pid);
-                            if (metrics.find(config.name) == metrics.end())
+                            try
                             {
-                                metrics[config.name] =
-                                    std::make_unique<MetricIntf::HealthMetric>(
+                                if (metrics.find(config.name) == metrics.end())
+                                {
+                                    metrics[config.name] = std::make_unique<
+                                        MetricIntf::HealthMetric>(
                                         bus, type, config, bmcPaths);
+                                }
+                                metrics[config.name]->setPid(pid);
+                                removePendingConfig(config.name);
                             }
-                            metrics[config.name]->setPid(pid);
-                            removePendingConfig(config.name);
+                            catch (const sdbusplus::exception_t& e)
+                            {
+                                // Keep the config pending and retry on the next
+                                // cycle instead of terminating the daemon.
+                                error(
+                                    "Failed to create pending health metric for {NAME}: {ERROR}",
+                                    "NAME", config.name, "ERROR", e.what());
+                            }
                         }
                     }
                 }
@@ -632,8 +656,19 @@ void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
 #ifdef ENABLE_DEBUG
             debug("Creating eMMC metric {NAME}", "NAME", config.name);
 #endif
-            metrics[config.name] = std::make_unique<MetricIntf::HealthMetric>(
-                bus, type, config, bmcPaths);
+            try
+            {
+                metrics[config.name] =
+                    std::make_unique<MetricIntf::HealthMetric>(
+                        bus, type, config, bmcPaths);
+            }
+            catch (const sdbusplus::exception_t& e)
+            {
+                // A single metric failing to register on D-Bus must not bring
+                // down the health monitor - log and skip this metric.
+                error("Failed to create health metric {NAME}: {ERROR}", "NAME",
+                      config.name, "ERROR", e.what());
+            }
         }
     }
 }
@@ -674,16 +709,38 @@ void HealthMetricCollection::createProcessMetric(
                     {
                         if (config.binaryName == processName)
                         {
+                            try
+                            {
+                                // Two live PIDs can transiently share the same
+                                // comm (e.g. a service mid-restart under load).
+                                // Both map to the same D-Bus object path (the
+                                // path is derived from config.name, not the
+                                // PID), so creating a second HealthMetric would
+                                // make sd_bus_add_object_vtable throw
+                                // FileExists. Only create once per config.
+                                if (metrics.find(config.name) == metrics.end())
+                                {
 #ifdef ENABLE_DEBUG
-                            // Create a new health metric object for this
-                            // process
-                            debug("Creating health metric for process {NAME}",
-                                  "NAME", config.name);
+                                    // Create a new health metric object for
+                                    // this process
+                                    debug(
+                                        "Creating health metric for process {NAME}",
+                                        "NAME", config.name);
 #endif
-                            metrics[config.name] =
-                                std::make_unique<MetricIntf::HealthMetric>(
-                                    bus, type, config, bmcPaths);
-                            metrics[config.name]->setPid(pid);
+                                    metrics[config.name] = std::make_unique<
+                                        MetricIntf::HealthMetric>(
+                                        bus, type, config, bmcPaths);
+                                }
+                                metrics[config.name]->setPid(pid);
+                            }
+                            catch (const sdbusplus::exception_t& e)
+                            {
+                                // Never let a D-Bus registration failure
+                                // terminate the daemon - log and continue.
+                                error(
+                                    "Failed to create health metric for process {NAME}: {ERROR}",
+                                    "NAME", config.name, "ERROR", e.what());
+                            }
                         }
                     }
                 }
