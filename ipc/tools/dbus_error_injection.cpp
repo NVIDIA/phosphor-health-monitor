@@ -4,6 +4,8 @@
 #include <sdbusplus/message.hpp>
 
 #include <chrono>
+#include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -30,6 +32,7 @@ void signalHandler(sdbusplus::message_t& msg)
 }
 
 int main()
+try
 {
     // Create a new default system bus connection
     auto bus = sdbusplus::bus::new_default_system();
@@ -38,17 +41,13 @@ int main()
     std::string matchRule = "type='signal', "
                             "path_namespace='/xyz/openbmc_project'";
 
-    std::shared_ptr<sdbusplus::bus::match_t> matchDbusLogging =
-        std::make_shared<sdbusplus::bus::match_t>(bus, matchRule,
-                                                  signalHandler);
-    if (matchDbusLogging)
-    {
-        lg2::info("Match rule created successfully");
-    }
-    else
-    {
-        error("Failed to create match rule");
-    }
+    // std::make_shared either succeeds or throws std::bad_alloc — never
+    // returns a null shared_ptr, so a defensive 'if (matchDbusLogging)'
+    // check would be tautological dead code (Coverity CID 22297031).
+    auto matchDbusLogging = std::make_shared<sdbusplus::bus::match_t>(
+        bus, matchRule, signalHandler);
+    lg2::info("Match rule created successfully");
+
     // Enter the processing loop to handle incoming signals
     while (true)
     {
@@ -57,4 +56,15 @@ int main()
     }
 
     return 0;
+}
+catch (const std::exception& e)
+{
+    lg2::error("dbus_error_injection: unhandled exception in main: {ERR}",
+               "ERR", e.what());
+    return EXIT_FAILURE;
+}
+catch (...)
+{
+    lg2::error("dbus_error_injection: unknown unhandled exception in main");
+    return EXIT_FAILURE;
 }
