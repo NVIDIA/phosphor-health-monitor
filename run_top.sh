@@ -1,36 +1,31 @@
 #!/bin/bash
-TOPOUTPUT=""
-# Set the resource type to "CPU" or "MEM"
+# Usage: run_top.sh <resource>; prints the top processes by CPU or memory.
 RESOURCE=$1
-#Run the 'top' command in batch mode for one iteration, limiting the output to 25 lines
-top_output=$(top -b -n 1 | head -n 5 | tail -n 2)
 
-cpu_column=$(echo "$top_output" | head -n 1 | tr -s ' ' | sed 's/^ *//' |
-             awk '{for(i=1;i<=NF;i++) if($i ~ /%CPU/) print i}')
-mem_column=$(echo "$top_output" | head -n 1 | tr -s ' ' | sed 's/^ *//' |
-             awk '{for(i=1;i<=NF;i++) if($i ~ /%VSZ/) print i}')
+if [[ "$RESOURCE" == "CPU"* ]]; then
+    COLS="%CPU"
+else
+    # busybox top shows %VSZ or %RSS depending on its config
+    COLS="%VSZ %RSS %MEM"
+fi
 
-#echo "CPU Column: $cpu_column"
-#echo "MEM Column: $mem_column"
-top_output=$(top -b -n 1 | head -n 100 | tail -n 96)
-#Iterate through each line in the top output
-usage=0
-while IFS= read -r line; do
-    # Extract the CPU usage percentage (the 8th column)
-    if [[ "$RESOURCE" == "CPU"* ]]; then
-        # Check if the line contains process information and CPU usage (line starts with a space)
-        usage=$(echo "$line" | awk '{print $'$cpu_column'}' | awk '{ print substr( $0, 1, length($0)-1 ) }')
-    else
-        usage=$(echo "$line" | awk '{print $'$mem_column'}' | awk '{ print substr( $0, 1, length($0)-1 ) }')
-    fi
-#    echo "USAGE : $usage"
-    # Check if CPU/Memory usage is greater than
-    if (( usage > 6 )) ; then
-#       echo "LINE : $line"
-#       echo "USAGE : $usage"
-        Process=$(echo "$line" | awk '{print $9 " " }')
-#       echo "Processname : $Process"
-        TOPOUTPUT+="$Process($usage%) "
-    fi
-done <<< "$top_output"
-echo "$TOPOUTPUT"
+top -b -n 1 | awk -v want="$COLS" '
+    !col && $1 == "PID" {
+        n = split(want, w, " ")
+        for (j = 1; j <= n && !col; j++)
+            for (i = 1; i <= NF; i++)
+                if ($i == w[j]) { col = i; break }
+        for (i = 1; i <= NF; i++)
+            if ($i == "COMMAND") cmd = i
+        next
+    }
+    col && cmd && NF >= cmd {
+        u = $col
+        sub(/%$/, "", u)
+        if (u + 0 > 0) printf "%s %s(%s%%)\n", u, $cmd, u
+    }' | sort -rn | head -n 10 | cut -d" " -f2- | tr "\n" " "
+
+if [[ "$RESOURCE" != "CPU"* ]]; then
+    grep -E "^(MemAvailable|Shmem|Slab|SUnreclaim):" /proc/meminfo | tr -s " " | tr "\n" " "
+fi
+echo
