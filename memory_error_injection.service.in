@@ -1,6 +1,5 @@
 [Unit]
 Description= Subscribe and block
-After=obmc-mapper.target
 
 [Service]
 ExecStart=@bindir@/inject-memory-leak

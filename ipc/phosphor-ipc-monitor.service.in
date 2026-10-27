@@ -1,6 +1,5 @@
 [Unit]
 Description=BMC IPC monitoring
-After=obmc-mapper.target
 
 [Service]
 ExecStart=@bindir@/ipc-monitor
