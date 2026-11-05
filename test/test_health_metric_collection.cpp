@@ -73,6 +73,11 @@ class HealthMetricCollectionTest : public ::testing::Test
 
     void createCollection()
     {
+        auto unmockedBus = sdbusplus::bus::new_bus();
+        EXPECT_CALL(sdbusMock, sd_bus_get_fd(IsNull()))
+            .WillOnce(testing::Return(unmockedBus.get_fd()));
+        sdbusplus::async::context ctx(sdbusplus::get_mocked_new(&sdbusMock));
+
         std::map<MetricIntf::Type,
                  std::unique_ptr<CollectionIntf::HealthMetricCollection>>
             collections;
@@ -81,7 +86,7 @@ class HealthMetricCollectionTest : public ::testing::Test
         {
             collections[type] =
                 std::make_unique<CollectionIntf::HealthMetricCollection>(
-                    bus, type, collectionConfig, bmcPaths);
+                    ctx, type, collectionConfig, bmcPaths);
             collections[type]->read();
         }
     }

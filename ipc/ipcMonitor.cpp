@@ -20,7 +20,7 @@ void IPCMonitor::createSensors()
     for (auto& cfg : configs)
     {
         const std::shared_ptr<IPCHealthSensor>& ipcSensor =
-            IPCHealthSensor::getIPCHealthSensor(bus, cfg, ioc);
+            IPCHealthSensor::getIPCHealthSensor(bus, cfg);
         if (ipcSensor != nullptr)
         {
             ipcSensors.emplace(cfg.name, ipcSensor);

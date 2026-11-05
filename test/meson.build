@@ -55,6 +55,7 @@ test(
         ],
         include_directories: '../',
     ),
+    env: ['LG2_FORCE_STDERR=1'],
 )
 
 test(

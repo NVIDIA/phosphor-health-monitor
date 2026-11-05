@@ -13,8 +13,7 @@ class DBusIpcSensor : public IPCHealthSensor
 {
   public:
     /* Forcing explicit construction */
-    DBusIpcSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
-                  boost::asio::io_context& io);
+    DBusIpcSensor(sdbusplus::asio::connection& bus, IPCConfig& ipcConfig);
     /* Destructor */
     virtual ~DBusIpcSensor();
 
