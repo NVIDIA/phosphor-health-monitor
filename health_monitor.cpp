@@ -34,7 +34,7 @@ auto HealthMonitor::startup() -> sdbusplus::async::task<>
         info("Creating Health Metric Collection for {TYPE}", "TYPE", type);
         collections[type] =
             std::make_unique<CollectionIntf::HealthMetricCollection>(
-                ctx.get_bus(), type, collectionConfig, bmcPaths);
+                ctx, type, collectionConfig, bmcPaths);
     }
 
     co_await run();

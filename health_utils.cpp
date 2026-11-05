@@ -1,13 +1,12 @@
 #include "health_utils.hpp"
 
-#include "ipc/asio_connection.hpp"
-
 #include <dirent.h>
 
 #include <phosphor-logging/lg2.hpp>
 #include <xyz/openbmc_project/ObjectMapper/client.hpp>
 
 #include <cstring>
+#include <exception>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -224,18 +223,11 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
     }
 }
 
-void asyncCreateRFLogEntry(
-    const std::string& messageID, const std::string& messageArgs,
-    const std::string& messageLevel, const std::string& resolution,
-    const std::string& logNamespace)
+auto asyncCreateRFLogEntry(sdbusplus::async::context& ctx,
+                           std::string messageID, std::string messageArgs,
+                           std::string messageLevel, std::string resolution,
+                           std::string logNamespace) -> sdbusplus::async::task<>
 {
-    auto& connObject = phosphor::ipc::AsioConnection::getAsioConnection();
-    if (connObject == nullptr)
-    {
-        error("Connection object is null");
-        return;
-    }
-
     std::map<std::string, std::string> addData;
     addData["REDFISH_MESSAGE_ID"] = messageID;
 
@@ -254,19 +246,28 @@ void asyncCreateRFLogEntry(
         addData["namespace"] = logNamespace;
     }
 
-    connObject->async_method_call(
-        [](boost::system::error_code ec) {
-            if (ec)
-            {
-                error("error while logging message registry: ", "ERROR_MESSAGE",
-                      ec.message());
-                return;
-            }
-        },
-        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
-        "xyz.openbmc_project.Logging.Create", "Create", messageID, messageLevel,
-        addData);
-    return;
+    constexpr auto logging =
+        sdbusplus::async::proxy()
+            .service("xyz.openbmc_project.Logging")
+            .path("/xyz/openbmc_project/logging")
+            .interface("xyz.openbmc_project.Logging.Create");
+    co_await logging.call<>(ctx, "Create", messageID, messageLevel, addData);
+}
+
+void logBackgroundError(std::exception_ptr exception) noexcept
+{
+    try
+    {
+        std::rethrow_exception(exception);
+    }
+    catch (const std::exception& e)
+    {
+        error("Background task failed: {ERROR}", "ERROR", e.what());
+    }
+    catch (...)
+    {
+        error("Background task failed with an unknown exception");
+    }
 }
 
 } // namespace phosphor::health::utils

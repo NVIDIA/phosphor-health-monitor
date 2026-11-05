@@ -1,10 +1,7 @@
 #include "dbusIpcSensor.hpp"
 
-#include "asio_connection.hpp"
-
 #include <nlohmann/json.hpp>
 #include <phosphor-logging/lg2.hpp>
-#include <sdbusplus/bus.hpp>
 #include <sdbusplus/message.hpp>
 
 #include <filesystem>
@@ -45,15 +42,9 @@ using PeerAccountingType = std::vector<
 // Read data implementation
 void DBusIpcSensor::readSensor()
 {
-    auto& connObject = AsioConnection::getAsioConnection();
-    if (connObject == nullptr)
-    {
-        lg2::error("Connection object is null");
-        return;
-    }
     // DBus implementation of Debug/Stats
     // Make call to DBus Debug Service to get stats
-    connObject->async_method_call(
+    bus.async_method_call(
         [this](const boost::system::error_code ec,
                std::map<std::string, std::variant<PeerAccountingType>>& resp) {
             asyncResp.clear();
@@ -236,16 +227,10 @@ template <typename CallbackFn>
 void DBusIpcSensor::convertConnectionToUnit(const std::string& connName,
                                             CallbackFn&& callback)
 {
-    auto& connObject = AsioConnection::getAsioConnection();
-    if (connObject == nullptr)
-    {
-        lg2::error("Connection object is null");
-        return;
-    }
     // DBus implementation of Debug/Stats
     // Make call to DBus Debug Service to get stats
-    connObject->async_method_call(
-        [this, &connObject, callback = std::forward<CallbackFn>(callback)](
+    bus.async_method_call(
+        [this, callback = std::forward<CallbackFn>(callback)](
             const boost::system::error_code ec, unsigned int pid) {
             if (ec)
             {
@@ -253,7 +238,7 @@ void DBusIpcSensor::convertConnectionToUnit(const std::string& connName,
                 lg2::error("GetConnectionUnixProcessID resp_handler got error");
                 return;
             }
-            connObject->async_method_call(
+            bus.async_method_call(
                 [this, callback = std::move(callback),
                  pid](const boost::system::error_code ec,
                       sdbusplus::object_path path) {
@@ -424,9 +409,9 @@ void DBusIpcSensor::checkSensorThreshold(const double value,
     }
 }
 // Constructor implementation
-DBusIpcSensor::DBusIpcSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
-                             boost::asio::io_context& io) :
-    IPCHealthSensor(bus, ipcConfig, io)
+DBusIpcSensor::DBusIpcSensor(sdbusplus::asio::connection& bus,
+                             IPCConfig& ipcConfig) :
+    IPCHealthSensor(bus, ipcConfig)
 {}
 // Destructor implementation
 DBusIpcSensor::~DBusIpcSensor() {}

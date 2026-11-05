@@ -598,7 +598,7 @@ void HealthMetricCollection::createPendingConfigs()
                                 {
                                     metrics[config.name] = std::make_unique<
                                         MetricIntf::HealthMetric>(
-                                        bus, type, config, bmcPaths);
+                                        ctx.get_bus(), type, config, bmcPaths);
                                 }
                                 metrics[config.name]->setPid(pid);
                                 removePendingConfig(config.name);
@@ -660,7 +660,7 @@ void HealthMetricCollection::create(const MetricIntf::paths_t& bmcPaths)
             {
                 metrics[config.name] =
                     std::make_unique<MetricIntf::HealthMetric>(
-                        bus, type, config, bmcPaths);
+                        ctx.get_bus(), type, config, bmcPaths);
             }
             catch (const sdbusplus::exception_t& e)
             {
@@ -729,7 +729,7 @@ void HealthMetricCollection::createProcessMetric(
 #endif
                                     metrics[config.name] = std::make_unique<
                                         MetricIntf::HealthMetric>(
-                                        bus, type, config, bmcPaths);
+                                        ctx.get_bus(), type, config, bmcPaths);
                                 }
                                 metrics[config.name]->setPid(pid);
                             }
@@ -766,17 +766,20 @@ void HealthMetricCollection::handleServiceName(const std::string& serviceName)
 
     if (binaryName == "pldmd")
     {
-        phosphor::health::utils::asyncCreateRFLogEntry(
-            "OpenBMC.0.5.ServiceRestart", binaryName,
-            "xyz.openbmc_project.Logging.Entry.Level.Informational", "none",
-            "FWUpdate");
+        ctx.spawn(phosphor::health::utils::asyncCreateRFLogEntry(
+                      ctx, "OpenBMC.0.5.ServiceRestart", binaryName,
+                      "xyz.openbmc_project.Logging.Entry.Level.Informational",
+                      "none", "FWUpdate") |
+                  phosphor::health::utils::log_and_ignore_errors());
     }
     else
     {
         info("service name {SERVICE_NAME}", "SERVICE_NAME", serviceName);
-        phosphor::health::utils::asyncCreateRFLogEntry(
-            "OpenBMC.0.5.ServiceRestart", binaryName,
-            "xyz.openbmc_project.Logging.Entry.Level.Informational", "none");
+        ctx.spawn(phosphor::health::utils::asyncCreateRFLogEntry(
+                      ctx, "OpenBMC.0.5.ServiceRestart", binaryName,
+                      "xyz.openbmc_project.Logging.Entry.Level.Informational",
+                      "none") |
+                  phosphor::health::utils::log_and_ignore_errors());
     }
 }
 } // namespace phosphor::health::metric::collection

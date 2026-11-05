@@ -5,6 +5,7 @@
 #include <sdbusplus/sdbus.hpp>
 #include <xyz/openbmc_project/Common/Threshold/server.hpp>
 
+#include <exception>
 #include <vector>
 namespace phosphor::health::utils
 {
@@ -31,10 +32,18 @@ void createRFLogEntry(sdbusplus::bus_t& bus, const std::string& messageId,
                       const std::string& resolution);
 
 /* Create a log entry in the RFLog */
-void asyncCreateRFLogEntry(
-    const std::string& messageID, const std::string& messageArgs,
-    const std::string& messageLevel, const std::string& resolution,
-    const std::string& logNamespace = "");
+auto asyncCreateRFLogEntry(sdbusplus::async::context& ctx,
+                           std::string messageID, std::string messageArgs,
+                           std::string messageLevel, std::string resolution,
+                           std::string logNamespace = "")
+    -> sdbusplus::async::task<>;
+void logBackgroundError(std::exception_ptr error) noexcept;
+
+inline auto log_and_ignore_errors()
+{
+    return sdbusplus::async::execution::upon_error(logBackgroundError);
+}
+
 /** @brief Check if a string contains only digits */
 bool containsOnlyDigits(const std::string& str);
 

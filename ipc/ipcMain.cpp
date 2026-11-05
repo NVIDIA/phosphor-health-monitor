@@ -27,7 +27,7 @@ try
     auto event = sdeventplus::Event::get_default();
     // Create an IPC monitor object
     std::shared_ptr<phosphor::ipc::IPCMonitor> ipcMon =
-        std::make_shared<phosphor::ipc::IPCMonitor>(*conn, io);
+        std::make_shared<phosphor::ipc::IPCMonitor>(*conn);
 
     // Sleep until system boot
     ipcMon->sleepuntilSystemBoot();

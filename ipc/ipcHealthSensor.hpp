@@ -3,7 +3,7 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/container/flat_map.hpp>
-#include <sdbusplus/bus.hpp>
+#include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/message.hpp>
 #include <sdeventplus/clock.hpp>
 #include <sdeventplus/event.hpp>
@@ -38,15 +38,13 @@ class IPCHealthSensor
      * @param[in] bus     - Handle to system dbus
      * @param[in] objPath - The Dbus path of health sensor
      */
-    IPCHealthSensor(sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
-                    boost::asio::io_context& io) :
-        bus(bus), ipcConfig(ipcConfig), timer(io)
+    IPCHealthSensor(sdbusplus::asio::connection& bus, IPCConfig& ipcConfig) :
+        bus(bus), ipcConfig(ipcConfig), timer(bus.get_io_context())
     {}
     /** @brief Initialize sensor, set default value and association */
     void initSensor();
     static std::shared_ptr<IPCHealthSensor> getIPCHealthSensor(
-        sdbusplus::bus_t& bus, IPCConfig& ipcConfig,
-        boost::asio::io_context& io);
+        sdbusplus::asio::connection& bus, IPCConfig& ipcConfig);
 
     /** @brief Check Sensor threshold and create log  and take action*/
     virtual void checkSensorThreshold(const double value,
@@ -89,7 +87,7 @@ class IPCHealthSensor
                  std::string, std::variant<long int, double, std::string>>>>
         asyncResp;
     /** @brief sdbusplus bus client connection. */
-    sdbusplus::bus_t& bus;
+    sdbusplus::asio::connection& bus;
     /** @brief Sensor config from config file */
     IPCConfig& ipcConfig;
     /** @brief Timer to read sensor at regular interval */

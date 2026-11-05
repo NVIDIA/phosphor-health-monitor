@@ -3,7 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <phosphor-logging/lg2.hpp>
-#include <sdbusplus/bus.hpp>
+#include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/message.hpp>
 #include <sdbusplus/server/manager.hpp>
 #include <sdeventplus/clock.hpp>
@@ -33,8 +33,7 @@ class IPCMonitor
      *
      * @param[in] bus     - Handle to system dbus
      */
-    IPCMonitor(sdbusplus::bus_t& bus, boost::asio::io_context& io) :
-        bus(bus), ioc(io)
+    explicit IPCMonitor(sdbusplus::asio::connection& bus) : bus(bus)
     {
         // Read JSON file
         configs = getIPCConfig();
@@ -54,8 +53,7 @@ class IPCMonitor
 
   private:
     /** @brief Logging Rate Limit */
-    sdbusplus::bus_t& bus;
-    boost::asio::io_context& ioc;
+    sdbusplus::asio::connection& bus;
     unsigned int logRateLimit = 0;
     std::vector<IPCConfig> configs;
     const std::vector<IPCConfig> getIPCConfig();

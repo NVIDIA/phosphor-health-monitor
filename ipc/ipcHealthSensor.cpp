@@ -2,11 +2,9 @@
 
 #include "ipcHealthSensor.hpp"
 
-#include "asio_connection.hpp"
 #include "dbusIpcSensor.hpp"
 
 #include <phosphor-logging/lg2.hpp>
-#include <sdbusplus/bus.hpp>
 #include <sdbusplus/message.hpp>
 #include <sdbusplus/server/manager.hpp>
 
@@ -21,12 +19,11 @@ namespace ipc
 PHOSPHOR_LOG2_USING;
 
 std::shared_ptr<IPCHealthSensor> IPCHealthSensor::getIPCHealthSensor(
-    sdbusplus::bus_t& bus, IPCConfig& ipcConfig, boost::asio::io_context& io)
+    sdbusplus::asio::connection& bus, IPCConfig& ipcConfig)
 {
     if (ipcConfig.name == "dbus")
     {
-        return std::make_shared<phosphor::ipc::DBusIpcSensor>(
-            bus, ipcConfig, io);
+        return std::make_shared<phosphor::ipc::DBusIpcSensor>(bus, ipcConfig);
     }
     return nullptr;
 }
@@ -237,12 +234,6 @@ void IPCHealthSensor::createRFLogEntry(
     const std::string& level, const std::string& resolution,
     const std::string& errorId)
 {
-    auto& connObject = AsioConnection::getAsioConnection();
-    if (connObject == nullptr)
-    {
-        lg2::error("Connection object is null");
-        return;
-    }
     std::map<std::string, std::string> addData;
     addData["REDFISH_MESSAGE_ID"] = messageId;
     addData["REDFISH_MESSAGE_ARGS"] = messageArgs;
@@ -258,7 +249,7 @@ void IPCHealthSensor::createRFLogEntry(
         addData["xyz.openbmc_project.Logging.Entry.EventId"] = errorId;
     }
     // Make call to DBus Debug Service to create log entry
-    connObject->async_method_call(
+    bus.async_method_call(
         [](const boost::system::error_code ec) {
             if (ec)
             {
@@ -276,12 +267,6 @@ void IPCHealthSensor::startUnit(const std::string& sysdUnit,
                                 const std::string& serviceName,
                                 const std::string& additionalData)
 {
-    auto& connObject = AsioConnection::getAsioConnection();
-    if (connObject == nullptr)
-    {
-        lg2::error("Connection object is null");
-        return;
-    }
     if (sysdUnit.empty())
     {
         return;
@@ -297,7 +282,7 @@ void IPCHealthSensor::startUnit(const std::string& sysdUnit,
     auto p = service.find('@');
     if (p != std::string::npos)
         service.insert(p + 1, args);
-    connObject->async_method_call(
+    bus.async_method_call(
         [](const boost::system::error_code ec) {
             if (ec)
             {

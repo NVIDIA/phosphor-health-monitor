@@ -12,10 +12,10 @@ using configs_t = std::vector<ConfigIntf::HealthMetric>;
 class HealthMetricCollection
 {
   public:
-    HealthMetricCollection(sdbusplus::bus_t& bus, MetricIntf::Type type,
-                           const configs_t& configs,
+    HealthMetricCollection(sdbusplus::async::context& ctx,
+                           MetricIntf::Type type, const configs_t& configs,
                            MetricIntf::paths_t& bmcPaths) :
-        bus(bus), type(type), configs(configs), bmcPaths(bmcPaths)
+        ctx(ctx), type(type), configs(configs), bmcPaths(bmcPaths)
     {
         create(bmcPaths);
     }
@@ -66,8 +66,8 @@ class HealthMetricCollection
     long long calculateTotalMemory();
     /** @brief Handle the service name */
     void handleServiceName(const std::string& serviceName);
-    /** @brief D-Bus bus connection */
-    sdbusplus::bus_t& bus;
+    /** @brief Async context for D-Bus operations */
+    sdbusplus::async::context& ctx;
     /** @brief Metric type */
     MetricIntf::Type type;
     /** @brief Health metric configs */
